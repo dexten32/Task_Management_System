@@ -1,4 +1,5 @@
 import prisma from "../config/prisma";
+import { TaskStatus } from "@prisma/client";
 
 export interface TaskInput {
   title: string;
@@ -48,14 +49,14 @@ export const createTask = async (data: TaskInput) => {
       assignedToId: data.assignedTo,
       assignedById: data.assignedBy,
       priorityId: data.priorityId,
-      status: "ACTIVE",
+      status: TaskStatus.ACTIVE,
     },
   });
 };
 
 export const updateTaskStatusInDB = async (
   taskId: string,
-  newStatus: "complete" | "delayed" | "ACTIVE",
+  newStatus: TaskStatus.COMPLETED | TaskStatus.DELAYED | TaskStatus.ACTIVE,
 ) => {
   return prisma.task.update({
     where: { id: taskId },
@@ -69,7 +70,7 @@ export const getPreviousTasksByUser = async (userId: string) => {
   return prisma.task.findMany({
     where: {
       assignedToId: userId,
-      OR: [{ status: "complete" }, { status: "delayed" }],
+      OR: [{ status: TaskStatus.COMPLETED }, { status: TaskStatus.DELAYED }],
     },
     orderBy: {
       deadline: "desc",
