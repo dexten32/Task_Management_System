@@ -39,7 +39,7 @@ model Task {
   title        String
   description  String
   deadline     DateTime
-  status       String    @default("PENDING")
+  status       TaskStatus    @default(PENDING)
   createdAt    DateTime  @default(now())
 
   priorityId   Int?
@@ -72,4 +72,11 @@ enum Role {
   ADMIN
   MANAGER
   EMPLOYEE
+}
+
+enum TaskStatus {
+  PENDING
+  ACTIVE
+  DELAYED
+  COMPLETED
 }

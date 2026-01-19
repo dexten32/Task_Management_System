@@ -6,6 +6,7 @@ export interface TaskInput {
   deadline: Date; // Changed to Date type
   assignedTo: string;
   assignedBy: string;
+  priorityId: number;
 }
 
 // No longer used,  The logic is moved to the controller.
@@ -19,6 +20,13 @@ export const getRecentTasksByAdmin = async (adminId: string, limit: number) => {
       createdAt: "desc",
     },
     include: {
+      priority: {
+        select: {
+          code: true,
+          name: true,
+          color: true,
+        },
+      },
       assignedTo: {
         select: {
           name: true,
@@ -37,16 +45,17 @@ export const createTask = async (data: TaskInput) => {
       title: data.title,
       description: data.description,
       deadline: data.deadline,
-      assignedToId: data.assignedTo, // Use assignedToId
-      assignedById: data.assignedBy, // Use assignedById
-      status: "active",
+      assignedToId: data.assignedTo,
+      assignedById: data.assignedBy,
+      priorityId: data.priorityId,
+      status: "ACTIVE",
     },
   });
 };
 
 export const updateTaskStatusInDB = async (
   taskId: string,
-  newStatus: "complete" | "delayed" | "active"
+  newStatus: "complete" | "delayed" | "ACTIVE",
 ) => {
   return prisma.task.update({
     where: { id: taskId },

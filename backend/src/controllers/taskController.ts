@@ -4,10 +4,10 @@ import {
   getRecentTasksByAdmin,
   TaskInput,
   updateTaskStatusInDB,
-} from "../services/taskService"; // Import the TaskInput interface
-import { $Enums, Prisma } from "@prisma/client";
+} from "../services/taskService";
 import dotenv from "dotenv";
 import { getPreviousTasksByUser } from "../services/taskService";
+import { TaskStatus } from "@prisma/client";
 
 declare module "express-serve-static-core" {
   interface Request {
@@ -34,7 +34,21 @@ interface User {
 
 export const assignTask = async (req: Request, res: Response) => {
   try {
-    const { title, description, deadline, assignedTo } = req.body;
+    const { title, description, deadline, assignedTo, priorityId } = req.body;
+
+    if (!priorityId) {
+      return res
+        .status(401)
+        .json({ message: "Priority is necessary to create a task." });
+    }
+
+    const priority = await prisma.priority.findFirst({
+      where: { id: priorityId, isAsctive: true },
+    });
+
+    if (!priority) {
+      return res.status(400).json({ message: "Invalid priority." });
+    }
 
     if (!req.user || !req.user.id) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -56,15 +70,23 @@ export const assignTask = async (req: Request, res: Response) => {
         deadline: deadlineDate,
         assignedToId: assignedTo,
         assignedById: req.user.id,
-        status: "active",
+        priorityId,
+        status: TaskStatus.ACTIVE,
         createdAt: new Date(),
       },
       include: {
+        priority: {
+          select: {
+            code: true,
+            name: true,
+            color: true,
+          },
+        },
         assignedTo: {
           select: {
             name: true,
             id: true,
-            department: { select: { name: true, id: true } }, // <-- ADD THIS LINE!
+            department: { select: { name: true, id: true } },
           },
         },
         assignedBy: {
@@ -89,6 +111,13 @@ export const getTasksController = async (req: Request, res: Response) => {
   try {
     const tasks = await prisma.task.findMany({
       include: {
+        priority: {
+          select: {
+            code: true,
+            name: true,
+            color: true,
+          },
+        },
         assignedTo: {
           select: {
             name: true,
@@ -117,6 +146,9 @@ export const getRecentTasks = async (req: Request, res: Response) => {
       where: { assignedById: adminId },
       orderBy: { createdAt: "desc" },
       include: {
+        priority: {
+          select: { code: true, name: true, color: true },
+        },
         assignedTo: {
           select: {
             name: true,
@@ -145,6 +177,9 @@ export const getMyTasks = async (req: Request, res: Response) => {
     const tasks = await prisma.task.findMany({
       where: { assignedToId: userId },
       include: {
+        priority: {
+          select: { code: true, name: true, color: true },
+        },
         assignedTo: {
           select: { name: true, id: true },
         },
@@ -167,12 +202,15 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
     const now = new Date();
     const tasks = await prisma.task.findMany({
       where: {
-        status: "delayed",
+        status: TaskStatus.DELAYED,
         deadline: {
           lt: now,
         },
       },
       include: {
+        priority: {
+          select: { code: true, name: true, color: true },
+        },
         assignedTo: {
           select: { name: true, id: true },
         },
@@ -198,7 +236,11 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
   const { taskId } = req.params;
   const { status } = req.body;
 
-  if (!["active", "complete", "delayed"].includes(status)) {
+  if (
+    ![TaskStatus.ACTIVE, TaskStatus.COMPLETED, TaskStatus.DELAYED].includes(
+      status,
+    )
+  ) {
     return res.status(400).json({ error: "Invalid status value" });
   }
 
@@ -241,7 +283,7 @@ export const getTaskLimit = async (req: Request, res: Response) => {
 
 export const getTaskById = async (
   req: Request<{ id: string }>,
-  res: Response
+  res: Response,
 ) => {
   const taskId = req.params.id;
 
@@ -249,6 +291,9 @@ export const getTaskById = async (
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
+        priority: {
+          select: { code: true, name: true, color: true },
+        },
         logs: {
           orderBy: {
             createdAt: "asc",
