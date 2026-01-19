@@ -1,0 +1,9 @@
+ALTER TABLE "Task"
+ADD COLUMN "priorityId" INTEGER;
+
+ALTER TABLE "Task"
+ADD CONSTRAINT "Task_priorityId_fkey"
+FOREIGN KEY ("priorityId")
+REFERENCES "Priority"("id")
+ON DELETE SET NULL
+ON UPDATE CASCADE;

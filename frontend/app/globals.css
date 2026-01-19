@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Enable dark mode */
+  @media (prefers-color-scheme: dark) {
+    body {
+      background-color: #2d3748; /* bg-gray-700 */
+      color: #edf2f7; /* text off-white */
+    }
+  }
+}

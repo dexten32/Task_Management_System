@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String      @id @default(cuid())
+  name            String
+  email           String      @unique
+  role            Role        @default(EMPLOYEE)
+  approved        Boolean     @default(false)
+  isDeleted       Boolean     @default(false)
+  departmentId    String?
+  createdAt       DateTime    @default(now())
+  password        String?
+  assignedByTasks Task[]      @relation("assignedByTasks")
+  assignedTasks   Task[]      @relation("assignedTasks")
+  department      Department? @relation(fields: [departmentId], references: [id])
+}
+
+model Priority {
+  id       Int     @id @default(autoincrement())
+  code     String  @unique
+  name     String
+  color    String
+  order    Int
+  isActive Boolean @default(true)
+
+  tasks    Task[]
+}
+
+
+model Task {
+  id           String    @id @default(cuid())
+  title        String
+  description  String
+  deadline     DateTime
+  status       String    @default("PENDING")
+  createdAt    DateTime  @default(now())
+
+  priorityId   Int?
+  priority     Priority?  @relation(fields: [priorityId], references: [id])
+
+
+  assignedById String
+  assignedToId String
+  assignedBy   User      @relation("assignedByTasks", fields: [assignedById], references: [id])
+  assignedTo   User      @relation("assignedTasks", fields: [assignedToId], references: [id])
+  logs         TaskLog[]
+}
+
+model TaskLog {
+  id          String   @id @default(cuid())
+  description String
+  createdAt   DateTime @default(now())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Department {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  users     User[]
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
