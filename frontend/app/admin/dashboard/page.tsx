@@ -26,6 +26,7 @@ interface User {
 }
 
 interface Task {
+  priority?: { code: number; name: string; color: string };
   id: string;
   title: string;
   description: string;
@@ -96,7 +97,7 @@ const DashboardPage = () => {
           }) => {
             console.log(
               "User object *inside map function* (raw from API, before mapping):",
-              user
+              user,
             );
             return {
               id: user.id,
@@ -106,11 +107,11 @@ const DashboardPage = () => {
               role: user.role,
               approved: user.approved,
             };
-          }
+          },
         );
         console.log(
           "2. Mapped users (before setting allUsers state):",
-          mappedUsers
+          mappedUsers,
         );
         setAllUsers(mappedUsers);
 
@@ -132,7 +133,7 @@ const DashboardPage = () => {
           typeof error === "object" && error !== null && "message" in error
             ? (error as { message?: string }).message ||
                 "Failed to load data. Please check your connection."
-            : "Failed to load data. Please check your connection."
+            : "Failed to load data. Please check your connection.",
         );
       } finally {
         setIsModalDataLoading(false);
@@ -157,7 +158,7 @@ const DashboardPage = () => {
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(
-            errorData.message || "Failed to fetch pending user requests"
+            errorData.message || "Failed to fetch pending user requests",
           );
         }
         const data = await response.json();
@@ -168,7 +169,7 @@ const DashboardPage = () => {
           typeof error === "object" && error !== null && "message" in error
             ? (error as { message?: string }).message ||
                 "Failed to load pending user requests."
-            : "Failed to load pending user requests."
+            : "Failed to load pending user requests.",
         );
       }
     };
@@ -200,7 +201,7 @@ const DashboardPage = () => {
       setError(
         typeof err === "object" && err !== null && "message" in err
           ? (err as { message?: string }).message || "Failed to load tasks."
-          : "Failed to load tasks."
+          : "Failed to load tasks.",
       );
     }
   };
@@ -233,7 +234,7 @@ const DashboardPage = () => {
           typeof err === "object" && err !== null && "message" in err
             ? (err as { message?: string }).message ||
                 "Failed to load delayed tasks."
-            : "Failed to load delayed tasks."
+            : "Failed to load delayed tasks.",
         );
       }
     };
@@ -307,7 +308,7 @@ const DashboardPage = () => {
       setError(
         typeof err === "object" && err !== null && "message" in err
           ? (err as { message?: string }).message || "Error creating task"
-          : "Error creating task"
+          : "Error creating task",
       );
     }
   };
@@ -327,7 +328,7 @@ const DashboardPage = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       console.log("APPROVE USER: Response status:", response.status);
       if (response.ok) {
@@ -341,7 +342,7 @@ const DashboardPage = () => {
       setError(
         typeof error === "object" && error !== null && "message" in error
           ? (error as { message?: string }).message || "Failed to approve user."
-          : "Failed to approve user."
+          : "Failed to approve user.",
       );
     }
   };
@@ -360,7 +361,7 @@ const DashboardPage = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       if (response.ok) {
         setPendingUsers(pendingUsers.filter((user) => user.id !== userId));
@@ -373,14 +374,14 @@ const DashboardPage = () => {
       setError(
         typeof error === "object" && error !== null && "message" in error
           ? (error as { message?: string }).message || "Failed to decline user."
-          : "Failed to decline user."
+          : "Failed to decline user.",
       );
     }
   };
 
   const handleDepartmentChange = async (
     userId: string,
-    departmentId: string
+    departmentId: string,
   ) => {
     try {
       const token = localStorage.getItem("token");
@@ -396,19 +397,19 @@ const DashboardPage = () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ departmentId, role: "EMPLOYEE" }),
-        }
+        },
       );
       if (response.ok) {
         setPendingUsers(
           pendingUsers.map((user) =>
-            user.id === userId ? { ...user, departmentId: departmentId } : user
-          )
+            user.id === userId ? { ...user, departmentId: departmentId } : user,
+          ),
         );
 
         setAllUsers(
           allUsers.map((user) =>
-            user.id === userId ? { ...user, departmentId: departmentId } : user
-          )
+            user.id === userId ? { ...user, departmentId: departmentId } : user,
+          ),
         );
       } else {
         const data = await response.json();
@@ -420,7 +421,7 @@ const DashboardPage = () => {
         typeof error === "object" && error !== null && "message" in error
           ? (error as { message?: string }).message ||
               "Failed to update department."
-          : "Failed to update department."
+          : "Failed to update department.",
       );
     }
   };
@@ -464,8 +465,21 @@ const DashboardPage = () => {
                     <li
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className="p-4 border border-gray-200 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-indigo-200 transition duration-200 cursor-pointer"
+                      className="relative p-4 border border-gray-200 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-indigo-200 transition duration-200 cursor-pointer"
                     >
+                      {/* Priority Indicator*/}
+                      {task.priority && (
+                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                          <span
+                            className="inline-block h-3 w-3 rounded-full translate-y-[1px]"
+                            style={{ backgroundColor: task.priority.color }}
+                          />
+                          <span className="text-xs font-medium text-gray-700">
+                            {task.priority.name}
+                          </span>
+                        </div>
+                      )}
+                      {/* Main Task Content */}
                       <div>
                         <p className="text-sm text-gray-600 mb-1">
                           <strong>Title:</strong>{" "}
@@ -520,8 +534,20 @@ const DashboardPage = () => {
                     <div
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className="flex flex-col p-4 border border-red-200 rounded-lg bg-red-50 shadow-sm hover:border-red-300 hover:shadow-md transition duration-200 cursor-pointer"
+                      className="relative flex flex-col p-4 border border-red-200 rounded-lg bg-red-50 shadow-sm hover:border-red-300 hover:shadow-md transition duration-200 cursor-pointer"
                     >
+                      {/* Priority Indicator*/}
+                      {task.priority && (
+                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                          <span
+                            className="inline-block h-3 w-3 rounded-full translate-y-[1px]"
+                            style={{ backgroundColor: task.priority.color }}
+                          />
+                          <span className="text-xs font-medium text-gray-700">
+                            {task.priority.name}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex-1">
                         <p className="font-medium text-gray-700 text-base">
                           {task.title}
@@ -762,8 +788,8 @@ const DashboardPage = () => {
                           !selectedDeptId
                             ? "Select department first"
                             : filteredUsers.length > 0
-                            ? "Select a user"
-                            : "No users in this department"
+                              ? "Select a user"
+                              : "No users in this department"
                         }
                       />
                     </SelectTrigger>

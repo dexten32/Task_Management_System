@@ -19,6 +19,7 @@ type Task = {
   description: string;
   deadline: string;
   status: string;
+  priority: { code: string; name: string; color: string };
   logs: Log[]; // logs is always defined and matches the expected type
 };
 
@@ -60,7 +61,7 @@ export default function CurrentTaskDetailPage() {
           console.error(
             "API Fetch Error (Current Task Detail):",
             taskRes.status,
-            errorText
+            errorText,
           );
           setError(`Failed to fetch task: ${taskRes.status} ${errorText}`);
         }

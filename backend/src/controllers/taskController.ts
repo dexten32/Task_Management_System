@@ -43,7 +43,7 @@ export const assignTask = async (req: Request, res: Response) => {
     }
 
     const priority = await prisma.priority.findFirst({
-      where: { id: priorityId, isAsctive: true },
+      where: { id: priorityId, isActive: true },
     });
 
     if (!priority) {

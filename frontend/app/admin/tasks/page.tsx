@@ -5,6 +5,7 @@ import ClientTaskDetail from "@/components/ClientTaskDetail";
 import React, { useEffect, useState } from "react";
 
 interface Task {
+  priority: { code: string; name: string; color: string };
   id: string;
   title: string;
   description: string;
@@ -23,6 +24,7 @@ interface FetchedTask {
   assignedTo?: { id: string; name: string; department?: { name?: string } };
   status: string;
   assignedBy?: { id: string; name: string };
+  priority: { code: string; name: string; color: string };
 }
 
 interface User {
@@ -53,7 +55,7 @@ const decodeJwtToken = (token: string): DecodedToken | null => {
       atob(base64)
         .split("")
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .join(""),
     );
     return JSON.parse(jsonPayload) as DecodedToken;
   } catch (error) {
@@ -142,7 +144,7 @@ export default function AdminTasksPage() {
           selectedDepartment === "All"
             ? `${API_BASE_URL}/api/users`
             : `${API_BASE_URL}/api/users?department=${encodeURIComponent(
-                selectedDepartment
+                selectedDepartment,
               )}`;
 
         const res = await fetch(url, {
@@ -156,14 +158,14 @@ export default function AdminTasksPage() {
             name: user.name,
             departmentId: user.departmentId || null,
             departmentName: user.department?.name || null,
-          })
+          }),
         );
         setUsers(mappedUsers);
         setSelectedUser("All");
       } catch (error: unknown) {
         console.error("Error fetching users:", error);
         setError(
-          error instanceof Error ? error.message : "Failed to load users."
+          error instanceof Error ? error.message : "Failed to load users.",
         );
       } finally {
         setLoadingUsers(false);
@@ -184,6 +186,7 @@ export default function AdminTasksPage() {
         });
         if (!res.ok) throw new Error("Failed to fetch tasks");
         const data = await res.json();
+        console.log("data: ", data);
 
         const mappedTasks: Task[] = data.tasks.map((task: FetchedTask) => ({
           id: task.id,
@@ -194,12 +197,13 @@ export default function AdminTasksPage() {
           department: task.assignedTo?.department?.name || "N/A",
           status: task.status,
           assignedBy: task.assignedBy || { id: "", name: "N/A" },
+          priority: task.priority,
         }));
         setTasks(mappedTasks);
       } catch (error: unknown) {
         console.error("Error fetching tasks:", error);
         setError(
-          error instanceof Error ? error.message : "Failed to load tasks."
+          error instanceof Error ? error.message : "Failed to load tasks.",
         );
       } finally {
         setLoadingTasks(false);
@@ -220,6 +224,7 @@ export default function AdminTasksPage() {
     const userMatch =
       selectedUser === "All" || task.assignedTo.name === selectedUser;
     return departmentMatch && userMatch;
+    console.log("Filtered Task: ", filteredTasks);
   });
 
   return (
@@ -296,7 +301,7 @@ export default function AdminTasksPage() {
               .sort(
                 (a, b) =>
                   new Date(b.deadline).getTime() -
-                  new Date(a.deadline).getTime()
+                  new Date(a.deadline).getTime(),
               )
               .reduce((groups: Record<string, typeof filteredTasks>, task) => {
                 const date = new Date(task.deadline).toLocaleDateString(
@@ -305,26 +310,40 @@ export default function AdminTasksPage() {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
-                  }
+                  },
                 );
                 if (!groups[date]) groups[date] = [];
                 groups[date].push(task);
                 return groups;
-              }, {})
+              }, {}),
           ).map(([date, tasks]) => (
             <div key={date}>
               <h2 className="text-xl font-semibold text-gray-700 mb-4 border-b border-gray-300 pb-1">
                 {date}
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {tasks.map((task) => (
                   <div
                     key={task.id}
                     onClick={() => setSelectedTaskId(task.id)}
                     className="block group cursor-pointer"
                   >
-                    <div className="bg-white/90 p-6 rounded-2xl border border-gray-200 shadow-sm hover:-translate-y-1 hover:shadow-lg hover:border-indigo-300 transition-all duration-300">
-                      <h3 className="text-lg font-semibold mb-2 text-gray-900 group-hover:text-indigo-600 transition-colors">
+                    <div className="relative bg-white/90 pt-2 p-6 rounded-2xl border border-gray-200 shadow-sm hover:-translate-y-1 hover:shadow-lg hover:border-indigo-300 transition-all duration-300">
+                      {/* Priority Indicator */}
+                      {task.priority && (
+                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                          <span
+                            className="inline-block h-3 w-3 rounded-full"
+                            style={{
+                              backgroundColor: task.priority?.color,
+                            }}
+                          />
+                          <span className="text-xs font-medium text-gray-700">
+                            {task.priority?.name}
+                          </span>
+                        </div>
+                      )}
+                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
                         {task.title}
                       </h3>
                       <p className="text-sm text-gray-600 mb-3 line-clamp-2">

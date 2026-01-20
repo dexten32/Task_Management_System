@@ -17,6 +17,7 @@ type Task = {
   description: string;
   deadline: string;
   status: string;
+  priority: { code: string; name: string; color: string };
   logs: Log[];
 };
 
@@ -99,6 +100,7 @@ export default function TaskDetailComponent({
       default:
         return "text-slate-600";
     }
+    console.log("Task Status: ", task.status);
   };
 
   return (
@@ -108,7 +110,7 @@ export default function TaskDetailComponent({
         <div className="flex items-center justify-between mb-3">
           <span
             className={`text-xs font-semibold tracking-wider uppercase ${getStatusColor(
-              task.status
+              task.status,
             )}`}
           >
             {task.status}
