@@ -5,12 +5,12 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import TaskDetailComponent from "../../../../components/taskDetailComponent"; // Import the shared component
 import API_BASE_URL from "@/lib/api";
+import { TaskStatus } from "@/lib/taskStatus";
 
 type Log = {
   id: string;
-  description: string; // Match the shared Log type used in TaskDetailComponent
+  description: string;
   createdAt: string;
-  // Add other fields as needed
 };
 
 type Task = {
@@ -18,9 +18,9 @@ type Task = {
   title: string;
   description: string;
   deadline: string;
-  status: string;
+  status: TaskStatus;
   priority: { code: string; name: string; color: string };
-  logs: Log[]; // logs is always defined and matches the expected type
+  logs: Log[];
 };
 
 export default function CurrentTaskDetailPage() {

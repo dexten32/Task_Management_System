@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from "react";
 import TaskLogDisplay from "./taskLogDisplay";
 import API_BASE_URL from "@/lib/api";
+import { TaskStatus, TASK_STATUS_CONFIG } from "@/lib/taskStatus";
 
 type Log = {
   id: string;
@@ -16,7 +17,7 @@ type Task = {
   title: string;
   description: string;
   deadline: string;
-  status: string;
+  status: TaskStatus;
   priority: { code: string; name: string; color: string };
   logs: Log[];
 };
@@ -51,7 +52,7 @@ export default function TaskDetailComponent({
 
     const now = new Date();
     const deadline = new Date(task.deadline);
-    const newStatus = now < deadline ? "complete" : "delayed";
+    const newStatus: TaskStatus = now < deadline ? "COMPLETE" : "DELAYED";
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/tasks/${task.id}/status`, {
@@ -79,29 +80,10 @@ export default function TaskDetailComponent({
     }
   };
 
-  const canModifyTask =
-    task.status.toUpperCase() === "ACTIVE" ||
-    task.status.toUpperCase() === "PENDING";
+  const canModifyTask = task.status === "ACTIVE" || task.status === "PENDING";
 
   const showCompletedOrDelayedMessage =
-    task.status.toUpperCase() === "COMPLETE" ||
-    task.status.toUpperCase() === "DELAYED";
-
-  const getStatusColor = (status: string) => {
-    switch (status.toUpperCase()) {
-      case "ACTIVE":
-        return "text-blue-600";
-      case "PENDING":
-        return "text-amber-600";
-      case "COMPLETE":
-        return "text-emerald-600";
-      case "DELAYED":
-        return "text-rose-600";
-      default:
-        return "text-slate-600";
-    }
-    console.log("Task Status: ", task.status);
-  };
+    task.status === "COMPLETE" || task.status === "DELAYED";
 
   return (
     <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -109,11 +91,11 @@ export default function TaskDetailComponent({
       <div className="px-6 py-5 flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <span
-            className={`text-xs font-semibold tracking-wider uppercase ${getStatusColor(
-              task.status,
-            )}`}
+            className={`text-xs font-semibold tracking-wider uppercase ${
+              TASK_STATUS_CONFIG[task.status].colorClass
+            }`}
           >
-            {task.status}
+            {TASK_STATUS_CONFIG[task.status].label}
           </span>
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <svg
