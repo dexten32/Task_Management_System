@@ -26,7 +26,7 @@ interface User {
 }
 
 interface Task {
-  priority?: { code: number; name: string; color: string };
+  priority: { code: string; name: string; color: string };
   id: string;
   title: string;
   description: string;
@@ -43,6 +43,12 @@ interface Department {
   id: string;
   name: string;
 }
+type Priority = {
+  id: number;
+  code: string;
+  name: string;
+  color: string;
+};
 
 const DashboardPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,6 +67,10 @@ const DashboardPage = () => {
   const [isModalDataLoading, setIsModalDataLoading] = useState(true);
   const [modalFetchError, setModalFetchError] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [priorities, setPriorities] = useState<Priority[]>([]);
+  const [selectedPriorityId, setSelectedPriorityId] = useState<number | null>(
+    null,
+  );
 
   useEffect(() => {
     const fetchUsersAndDepartments = async () => {
@@ -127,6 +137,22 @@ const DashboardPage = () => {
         }
         const departmentsData = await deptResponse.json();
         setDepartments(departmentsData.departments || []);
+        const priorityResponse = await fetch(`${API_BASE_URL}/api/priorities`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!priorityResponse.ok) {
+          const errorData = await priorityResponse.json();
+          throw new Error(errorData.message || "Failed to fetch priorities");
+        }
+
+        const priorityData = await priorityResponse.json();
+        console.log("Fetched priorities:", priorityData);
+
+        setPriorities(priorityData.priorities || []);
       } catch (error: unknown) {
         console.error("Failed to fetch users and departments", error);
         setModalFetchError(
@@ -265,7 +291,8 @@ const DashboardPage = () => {
       !description ||
       !deadline ||
       !selectedUser ||
-      !selectedDeptId
+      !selectedDeptId ||
+      !selectedPriorityId
     ) {
       setError("Please fill in all fields.");
       return;
@@ -288,6 +315,7 @@ const DashboardPage = () => {
           deadline,
           assignedTo: selectedUser,
           departmentId: selectedDeptId || null,
+          priorityId: selectedPriorityId,
         }),
       });
 
@@ -697,7 +725,7 @@ const DashboardPage = () => {
                   <Input
                     id="title"
                     type="text"
-                    className="w-full rounded-lg border-gray-300 focus:border-indigo-400 focus:ring-indigo-400"
+                    className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-400 focus:ring-indigo-400"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     required
@@ -713,28 +741,70 @@ const DashboardPage = () => {
                   </label>
                   <Textarea
                     id="description"
-                    className="w-full rounded-lg border-gray-300 focus:border-indigo-400 focus:ring-indigo-400"
+                    className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-400 focus:ring-indigo-400"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     required
                   />
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="deadline"
-                    className="block mb-2 font-medium text-gray-700"
-                  >
-                    Deadline
-                  </label>
-                  <Input
-                    id="deadline"
-                    type="datetime-local"
-                    className="w-full rounded-lg border-gray-300 focus:border-indigo-400 focus:ring-indigo-400"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                    required
-                  />
+                <div className="gap-2">
+                  {/* Priority */}
+                  <div className="">
+                    <label className="block mb-2 font-medium text-gray-700">
+                      Priority
+                    </label>
+
+                    <div className="flex flex-wrap gap-2">
+                      {priorities.map((p) => (
+                        <label
+                          key={p.id}
+                          className={`flex text-xs items-center gap-2 px-2 py-2 rounded-lg border cursor-pointer transition
+                              ${
+                                selectedPriorityId === p.id
+                                  ? "border-indigo-500 bg-indigo-50"
+                                  : "border-gray-300 bg-white hover:border-gray-400"
+                              }`}
+                        >
+                          <input
+                            type="radio"
+                            name="priority"
+                            value={p.id}
+                            checked={selectedPriorityId === p.id}
+                            onChange={() => setSelectedPriorityId(p.id)}
+                            className="accent-indigo-600"
+                          />
+
+                          <span
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: p.color }}
+                          />
+
+                          <span className="text-xs text-gray-700">
+                            {p.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Deadline */}
+                  <div className="w-44">
+                    <label
+                      htmlFor="deadline"
+                      className="block mb-2 font-medium text-gray-700"
+                    >
+                      Deadline
+                    </label>
+                    <Input
+                      id="deadline"
+                      type="datetime-local"
+                      className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-400 focus:ring-indigo-400"
+                      value={deadline}
+                      onChange={(e) => setDeadline(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -826,10 +896,10 @@ const DashboardPage = () => {
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-blue-500 text-gray-700 hover:text-white border border-gray-400 hover:border-blue-400 hover:bg-blue-600 
+                    className="bg-blue-500 text-white hover:text-white border border-blue-200 hover:border-blue-400 hover:bg-blue-600 
                                 rounded-lg 
                                 px-4 py-2 text-sm w-full sm:w-auto 
-                                transition-all duration-200 shadow-sm hover:shadow-md"
+                                transition-all duration-200 hover:shadow-md"
                     disabled={isModalDataLoading}
                   >
                     Create Task
