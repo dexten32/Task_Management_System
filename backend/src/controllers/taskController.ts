@@ -21,6 +21,7 @@ interface AssignTaskRequestBody {
   description: string;
   deadline: string;
   assignedToId: string;
+  priority: { code: string; name: string; color: string };
 }
 
 interface User {
@@ -316,3 +317,4 @@ export const getTaskById = async (
     res.status(500).json({ message: "Error fetching task" });
   }
 };
+
