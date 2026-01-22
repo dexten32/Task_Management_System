@@ -110,8 +110,8 @@ export default function TaskLogDisplay({
           [...task.logs]
             .sort(
               (a, b) =>
-                new Date(b.createdAt).getTime() - // Changed to DESCENDING order
-                new Date(a.createdAt).getTime()
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime(),
             )
             .map((log) => {
               const logTime = new Date(log.createdAt);

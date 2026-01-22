@@ -23,7 +23,7 @@ const decodeJwtToken = (token: string): DecodedToken | null => {
       atob(base64)
         .split("")
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .join(""),
     );
     return JSON.parse(jsonPayload);
   } catch {
@@ -42,6 +42,7 @@ interface Task {
     name: string;
   };
   assignedBy: { id: string; name: string };
+  priority: { code: string; name: string; color: string };
 }
 
 export default function CurrentTasksSection() {
@@ -85,7 +86,7 @@ export default function CurrentTasksSection() {
       }
 
       const data = await res.json();
-      const activeTasks = data.filter((t: Task) => t.status === "active");
+      const activeTasks = data.filter((t: Task) => t.status === "ACTIVE");
       setCurrentTasks(activeTasks);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -109,7 +110,7 @@ export default function CurrentTasksSection() {
 
       const now = new Date();
       const deadline = new Date(task.deadline);
-      const newStatus = now < deadline ? "complete" : "delayed";
+      const newStatus = now < deadline ? "COMPLETED" : "DELAYED";
 
       const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/status`, {
         method: "PATCH",
@@ -133,15 +134,18 @@ export default function CurrentTasksSection() {
   };
 
   // Group tasks by deadline date (descending order)
-  const groupedTasks = currentTasks.reduce((acc, task) => {
-    const dateKey = format(new Date(task.deadline), "yyyy-MM-dd");
-    if (!acc[dateKey]) acc[dateKey] = [];
-    acc[dateKey].push(task);
-    return acc;
-  }, {} as Record<string, Task[]>);
+  const groupedTasks = currentTasks.reduce(
+    (acc, task) => {
+      const dateKey = format(new Date(task.deadline), "yyyy-MM-dd");
+      if (!acc[dateKey]) acc[dateKey] = [];
+      acc[dateKey].push(task);
+      return acc;
+    },
+    {} as Record<string, Task[]>,
+  );
 
   const sortedDates = Object.keys(groupedTasks).sort(
-    (a, b) => new Date(b).getTime() - new Date(a).getTime()
+    (a, b) => new Date(b).getTime() - new Date(a).getTime(),
   );
 
   return (
@@ -172,13 +176,28 @@ export default function CurrentTasksSection() {
                     <div
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className="bg-white shadow-md rounded-2xl border border-indigo-100 hover:shadow-lg hover:border-indigo-300 transition-all duration-200 cursor-pointer"
+                      className="relative bg-white shadow-md rounded-2xl border border-indigo-100 hover:shadow-lg hover:border-indigo-300 transition-all duration-200 cursor-pointer"
                     >
-                      <div className="p-5 flex flex-col h-full justify-between">
+                      <div className="p-5 pt-2 flex flex-col h-full justify-between">
                         <div>
-                          <h4 className="text-lg font-semibold text-indigo-700 mb-2">
-                            {task.title}
-                          </h4>
+                          <div className="flex item-start justify-between mb-2 gap-2">
+                            <h4 className="text-lg font-semibold text-indigo-700 mb-2">
+                              {task.title}
+                            </h4>
+                            {task.priority && (
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span
+                                  className="h-3 w-3 rounded-full"
+                                  style={{
+                                    backgroundColor: task.priority.color,
+                                  }}
+                                />
+                                <span className="text-xs font-medium text-gray-600 translate-y-[-1px]">
+                                  {task.priority.name}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                           <p className="text-gray-600 text-sm mb-3 line-clamp-3">
                             {task.description}
                           </p>
@@ -187,13 +206,19 @@ export default function CurrentTasksSection() {
                             Deadline:{" "}
                             {format(
                               new Date(task.deadline),
-                              "dd MMM yyyy, hh:mm a"
+                              "dd MMM yyyy, hh:mm a",
                             )}
                           </div>
                           <div className="text-sm text-gray-600">
                             Assigned by:{" "}
                             <span className="font-medium text-indigo-600">
-                              {task.assignedBy?.name || "N/A"}
+                              {
+                                (console.log(
+                                  "Assigned by: ",
+                                  task.assignedBy?.name,
+                                ),
+                                task.assignedBy?.name || "N/A")
+                              }
                             </span>
                           </div>
                         </div>

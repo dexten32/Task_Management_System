@@ -1,22 +1,22 @@
-
 "use client";
 
 import React, { useEffect, useState } from "react";
 import API_BASE_URL from "@/lib/api";
 import ClientTaskDetail from "@/components/ClientTaskDetail";
+import { TaskStatus, TASK_STATUS_CONFIG } from "@/lib/taskStatus";
 
 interface Task {
   id: string;
   title: string;
   description: string;
   deadline: string;
-  status: "active" | "completed" | "delayed";
-  assignedTo: {
+  status: TaskStatus;
+  assignedToId: {
     id: string;
     name: string;
     department?: { id: string; name: string } | null;
   };
-  assignedBy: { id: string; name: string };
+  assignedById: { id: string; name: string };
 }
 
 export default function PreviousTasksSection() {
@@ -41,10 +41,10 @@ export default function PreviousTasksSection() {
         const tasksArray = Array.isArray(data)
           ? data
           : Array.isArray(data?.tasks)
-          ? data.tasks
-          : [];
+            ? data.tasks
+            : [];
+        console.log("Previous Tasks Data: ", tasksArray);
 
-        // ✅ Group tasks by date
         const grouped: Record<string, Task[]> = {};
         tasksArray.forEach((task: Task) => {
           const dateKey = task.deadline
@@ -54,12 +54,11 @@ export default function PreviousTasksSection() {
           grouped[dateKey].push(task);
         });
 
-        // ✅ Sort each group by time within the same date
         Object.values(grouped).forEach((group) =>
           group.sort(
             (a, b) =>
-              new Date(b.deadline).getTime() - new Date(a.deadline).getTime()
-          )
+              new Date(b.deadline).getTime() - new Date(a.deadline).getTime(),
+          ),
         );
 
         setGroupedTasks(grouped);
@@ -74,19 +73,19 @@ export default function PreviousTasksSection() {
     fetchPreviousTasks();
   }, []);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: TaskStatus) => {
     switch (status) {
-      case "completed":
-        return "bg-green-100 text-green-800";
-      case "delayed":
-        return "bg-red-100 text-red-800";
+      case TASK_STATUS_CONFIG.COMPLETED.label:
+        return TASK_STATUS_CONFIG.COMPLETED.colorClass;
+      case TASK_STATUS_CONFIG.DELAYED.label:
+        return TASK_STATUS_CONFIG.DELAYED.colorClass;
       default:
-        return "bg-gray-100 text-gray-800";
+        return TASK_STATUS_CONFIG.ACTIVE.colorClass;
     }
   };
 
   const sortedDates = Object.keys(groupedTasks).sort(
-    (a, b) => new Date(b).getTime() - new Date(a).getTime()
+    (a, b) => new Date(b).getTime() - new Date(a).getTime(),
   );
 
   return (
@@ -131,8 +130,10 @@ export default function PreviousTasksSection() {
                   <div
                     key={task.id}
                     onClick={() => setSelectedTaskId(task.id)}
-                    className={`cursor-pointer border border-gray-200 rounded-2xl shadow-sm p-6 bg-white hover:shadow-md hover:border-indigo-200 transition ${
-                      task.status === "delayed" ? "border-red-300" : ""
+                    className={`cursor-pointer border border-gray-200 rounded-2xl shadow-sm pt-3 p-6 bg-white hover:shadow-md hover:border-indigo-200 transition ${
+                      task.status === TASK_STATUS_CONFIG.DELAYED.label
+                        ? TASK_STATUS_CONFIG.DELAYED.colorClass
+                        : ""
                     }`}
                   >
                     <div className="flex justify-between items-start mb-3">
@@ -141,7 +142,7 @@ export default function PreviousTasksSection() {
                       </h3>
                       <span
                         className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          task.status
+                          task.status,
                         )}`}
                       >
                         {task.status}
@@ -165,7 +166,13 @@ export default function PreviousTasksSection() {
                         <span className="font-medium text-gray-700">
                           Assigned By:
                         </span>{" "}
-                        {task.assignedBy?.name ?? "Unknown"}
+                        {
+                          (console.log(
+                            "Assigned by: ",
+                            task.assignedById?.name,
+                          ),
+                          task.assignedById?.name ?? "Unknown")
+                        }
                       </p>
                       <p>
                         <span className="font-medium text-gray-700">

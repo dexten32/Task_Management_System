@@ -1,4 +1,4 @@
-export type TaskStatus = "ACTIVE" | "PENDING" | "COMPLETE" | "DELAYED";
+export type TaskStatus = "ACTIVE" | "PENDING" | "COMPLETED" | "DELAYED";
 
 export const TASK_STATUS_CONFIG: Record<
   TaskStatus,
@@ -8,19 +8,19 @@ export const TASK_STATUS_CONFIG: Record<
   }
 > = {
   ACTIVE: {
-    label: "Active",
+    label: "ACTIVE",
     colorClass: "text-blue-600",
   },
   PENDING: {
-    label: "Pending",
+    label: "PENDING",
     colorClass: "text-amber-600",
   },
-  COMPLETE: {
-    label: "Completed",
+  COMPLETED: {
+    label: "COMPLETED",
     colorClass: "text-emerald-600",
   },
   DELAYED: {
-    label: "Delayed",
+    label: "DELAYED",
     colorClass: "text-rose-600",
   },
 };

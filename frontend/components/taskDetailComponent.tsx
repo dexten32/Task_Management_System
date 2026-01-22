@@ -52,7 +52,7 @@ export default function TaskDetailComponent({
 
     const now = new Date();
     const deadline = new Date(task.deadline);
-    const newStatus: TaskStatus = now < deadline ? "COMPLETE" : "DELAYED";
+    const newStatus: TaskStatus = now < deadline ? "COMPLETED" : "DELAYED";
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/tasks/${task.id}/status`, {
@@ -83,21 +83,19 @@ export default function TaskDetailComponent({
   const canModifyTask = task.status === "ACTIVE" || task.status === "PENDING";
 
   const showCompletedOrDelayedMessage =
-    task.status === "COMPLETE" || task.status === "DELAYED";
+    task.status === "COMPLETED" || task.status === "DELAYED";
 
   return (
     <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
       {/* Header - Fixed */}
-      <div className="px-6 py-5 flex-shrink-0">
+      <div className="relative px-6 py-5 flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <span
-            className={`text-xs font-semibold tracking-wider uppercase ${
-              TASK_STATUS_CONFIG[task.status].colorClass
-            }`}
+            className={`text-xs font-semibold tracking-wider ${TASK_STATUS_CONFIG[task.status].colorClass}`}
           >
             {TASK_STATUS_CONFIG[task.status].label}
           </span>
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
             <svg
               className="w-3.5 h-3.5"
               fill="none"
@@ -119,11 +117,26 @@ export default function TaskDetailComponent({
           </div>
         </div>
 
-        <h1 className="text-2xl md:text-4xl font-light text-slate-900 mb-2 tracking-tight">
-          {task.title}
-        </h1>
+        <div className="flex item-start justify-between mb-2 gap-2">
+          <h1 className="text-2xl md:text-4xl font-semibold text-slate-900 mb-2 tracking-tight">
+            {task.title}
+          </h1>
+          {task.priority && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span
+                className="h-3 w-3 rounded-full"
+                style={{
+                  backgroundColor: task.priority.color,
+                }}
+              />
+              <span className="text-base font-bold text-gray-600 translate-y-[-1px]">
+                {task.priority.name}
+              </span>
+            </div>
+          )}
+        </div>
 
-        <p className="text-slate-600 text-md leading-relaxed">
+        <p className="text-slate-600 text-md leading-relaxed font-semibold">
           {task.description}
         </p>
       </div>
@@ -147,7 +160,7 @@ export default function TaskDetailComponent({
         {showCompletedOrDelayedMessage && (
           <div className="flex items-center gap-2.5 py-2">
             <svg
-              className="w-4 h-4 text-emerald-600 flex-shrink-0"
+              className="w-6 h-6 text-emerald-600 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -159,7 +172,7 @@ export default function TaskDetailComponent({
                 d="M5 13l4 4L19 7"
               ></path>
             </svg>
-            <span className="text-slate-700 text-sm">
+            <span className="text-gray-700 text-base font-semibold">
               Task marked as {task.status.toLowerCase()}
             </span>
           </div>
