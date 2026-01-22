@@ -4,7 +4,7 @@ import { TaskStatus } from "@prisma/client";
 export interface TaskInput {
   title: string;
   description: string;
-  deadline: Date; // Changed to Date type
+  deadline: Date;
   assignedTo: string;
   assignedBy: string;
   priorityId: number;
@@ -74,6 +74,22 @@ export const getPreviousTasksByUser = async (userId: string) => {
     },
     orderBy: {
       deadline: "desc",
+    },
+    include: {
+      assignedBy: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      priority: {
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          color: true,
+        },
+      },
     },
   });
 };

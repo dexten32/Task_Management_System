@@ -11,12 +11,8 @@ interface Task {
   description: string;
   deadline: string;
   status: TaskStatus;
-  assignedToId: {
-    id: string;
-    name: string;
-    department?: { id: string; name: string } | null;
-  };
-  assignedById: { id: string; name: string };
+  assignedBy: { id: string; name: string };
+  priority: { id: string; name: string; color: string; code: string };
 }
 
 export default function PreviousTasksSection() {
@@ -130,29 +126,32 @@ export default function PreviousTasksSection() {
                   <div
                     key={task.id}
                     onClick={() => setSelectedTaskId(task.id)}
-                    className={`cursor-pointer border border-gray-200 rounded-2xl shadow-sm pt-3 p-6 bg-white hover:shadow-md hover:border-indigo-200 transition ${
+                    className={`relative cursor-pointer border border-gray-200 rounded-2xl shadow-sm pt-3 p-4 bg-white hover:shadow-md hover:border-indigo-200 transition ${
                       task.status === TASK_STATUS_CONFIG.DELAYED.label
                         ? TASK_STATUS_CONFIG.DELAYED.colorClass
                         : ""
                     }`}
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-xl font-semibold text-blue-700">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <h3 className="text-xl font-semibold text-blue-700 leading-tight">
                         {task.title?.toUpperCase() ?? "UNTITLED TASK"}
                       </h3>
-                      <span
-                        className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          task.status,
-                        )}`}
-                      >
-                        {task.status}
-                      </span>
-                    </div>
 
+                      {task.priority && (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: task.priority.color }}
+                          />
+                          <span className="text-xs font-medium text-gray-600">
+                            {task.priority.name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-3">
                       {task.description || "No description provided."}
                     </p>
-
                     <div className="text-sm text-gray-500 space-y-1">
                       <p>
                         <span className="font-medium text-gray-700">
@@ -162,24 +161,22 @@ export default function PreviousTasksSection() {
                           ? new Date(task.deadline).toLocaleString()
                           : "N/A"}
                       </p>
+
                       <p>
                         <span className="font-medium text-gray-700">
                           Assigned By:
                         </span>{" "}
-                        {
-                          (console.log(
-                            "Assigned by: ",
-                            task.assignedById?.name,
-                          ),
-                          task.assignedById?.name ?? "Unknown")
-                        }
+                        {task.assignedBy?.name ?? "Unknown"}
                       </p>
-                      <p>
-                        <span className="font-medium text-gray-700">
-                          Assigned To:
-                        </span>{" "}
-                        {task.assignedTo?.name ?? "Unknown"}
-                      </p>
+                    </div>
+                    <div className=" flex justify-end">
+                      <span
+                        className={` text-xs font-semibold rounded-full ${getStatusColor(
+                          task.status,
+                        )}`}
+                      >
+                        {task.status}
+                      </span>
                     </div>
                   </div>
                 ))}
