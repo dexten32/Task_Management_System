@@ -155,7 +155,7 @@ export default function CurrentTasksSection() {
 
   return (
     <div className="min-h-screen bg-blue-50 p-6">
-      <h2 className="text-3xl font-bold mb-6 text-indigo-700">
+      <h2 className="text-3xl font-bold mb-6 text-gray-700">
         My Current Tasks
       </h2>
 
@@ -173,7 +173,7 @@ export default function CurrentTasksSection() {
           ) : (
             sortedDates.map((date: string) => (
               <div key={date} className="mb-10">
-                <h3 className="text-xl font-semibold text-indigo-600 mb-4">
+                <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b border-gray-300 pb-1">
                   {format(new Date(date), "EEEE, dd MMM yyyy")}
                 </h3>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

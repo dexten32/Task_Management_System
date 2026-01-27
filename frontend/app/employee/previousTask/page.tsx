@@ -112,7 +112,7 @@ export default function PreviousTasksSection() {
         <div className="space-y-10">
           {sortedDates.map((dateKey) => (
             <div key={dateKey}>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">
+              <h3 className="text-lg font-semibold text-gray-700 border-gray-300 mb-4 border-b">
                 {dateKey === "Unknown Date"
                   ? "Unknown Deadline"
                   : new Date(dateKey).toLocaleDateString(undefined, {

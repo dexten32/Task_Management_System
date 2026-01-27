@@ -158,7 +158,7 @@ const DashboardPage = () => {
         setModalFetchError(
           typeof error === "object" && error !== null && "message" in error
             ? (error as { message?: string }).message ||
-                "Failed to load data. Please check your connection."
+            "Failed to load data. Please check your connection."
             : "Failed to load data. Please check your connection.",
         );
       } finally {
@@ -194,7 +194,7 @@ const DashboardPage = () => {
         setError(
           typeof error === "object" && error !== null && "message" in error
             ? (error as { message?: string }).message ||
-                "Failed to load pending user requests."
+            "Failed to load pending user requests."
             : "Failed to load pending user requests.",
         );
       }
@@ -259,7 +259,7 @@ const DashboardPage = () => {
         setError(
           typeof err === "object" && err !== null && "message" in err
             ? (err as { message?: string }).message ||
-                "Failed to load delayed tasks."
+            "Failed to load delayed tasks."
             : "Failed to load delayed tasks.",
         );
       }
@@ -448,7 +448,7 @@ const DashboardPage = () => {
       setError(
         typeof error === "object" && error !== null && "message" in error
           ? (error as { message?: string }).message ||
-              "Failed to update department."
+          "Failed to update department."
           : "Failed to update department.",
       );
     }
@@ -497,12 +497,12 @@ const DashboardPage = () => {
                     >
                       {/* Priority Indicator*/}
                       {task.priority && (
-                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                        <div className="absolute top-3 right-3 flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
                           <span
-                            className="inline-block h-3 w-3 rounded-full translate-y-[1px]"
+                            className="h-2 w-2 rounded-full"
                             style={{ backgroundColor: task.priority.color }}
                           />
-                          <span className="text-xs font-medium text-gray-700">
+                          <span className="text-[10px] uppercase font-bold text-gray-600">
                             {task.priority.name}
                           </span>
                         </div>
@@ -566,12 +566,12 @@ const DashboardPage = () => {
                     >
                       {/* Priority Indicator*/}
                       {task.priority && (
-                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                        <div className="absolute top-3 right-3 flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
                           <span
-                            className="inline-block h-3 w-3 rounded-full translate-y-[1px]"
+                            className="h-2 w-2 rounded-full"
                             style={{ backgroundColor: task.priority.color }}
                           />
-                          <span className="text-xs font-medium text-gray-700">
+                          <span className="text-[10px] uppercase font-bold text-gray-600">
                             {task.priority.name}
                           </span>
                         </div>
@@ -609,7 +609,7 @@ const DashboardPage = () => {
         </div>
 
         {/* Right Column - User Requests */}
-        <Card className="h-full rounded-xl shadow-lg bg-white/90 backdrop-blur-sm border border-gray-200 order-1 lg:order-2">
+        {/* <Card className="h-full rounded-xl shadow-lg bg-white/90 backdrop-blur-sm border border-gray-200 order-1 lg:order-2">
           <CardHeader className="p-4 md:p-6 border-b border-gray-200">
             <CardTitle className="text-lg md:text-xl font-semibold text-gray-800">
               User Requests
@@ -687,7 +687,7 @@ const DashboardPage = () => {
               )}
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Create Task Modal */}
@@ -760,11 +760,10 @@ const DashboardPage = () => {
                         <label
                           key={p.id}
                           className={`flex text-xs items-center gap-2 px-2 py-2 rounded-lg border cursor-pointer transition
-                              ${
-                                selectedPriorityId === p.id
-                                  ? "border-indigo-500 bg-indigo-50"
-                                  : "border-gray-300 bg-white hover:border-gray-400"
-                              }`}
+                              ${selectedPriorityId === p.id
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-gray-300 bg-white hover:border-gray-400"
+                            }`}
                         >
                           <input
                             type="radio"

@@ -160,8 +160,8 @@ export default function AdminTasksPage() {
           selectedDepartment === "All"
             ? `${API_BASE_URL}/api/users`
             : `${API_BASE_URL}/api/users?department=${encodeURIComponent(
-                selectedDepartment,
-              )}`;
+              selectedDepartment,
+            )}`;
 
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
@@ -417,14 +417,14 @@ export default function AdminTasksPage() {
                     <div className="relative bg-white/90 pt-2 p-6 rounded-2xl border border-gray-200 shadow-sm hover:-translate-y-1 hover:shadow-lg hover:border-indigo-300 transition-all duration-300">
                       {/* Priority Indicator */}
                       {task.priority && (
-                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                        <div className="absolute top-3 right-3 flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
                           <span
-                            className="inline-block h-3 w-3 rounded-full"
+                            className="h-2 w-2 rounded-full"
                             style={{
                               backgroundColor: task.priority?.color,
                             }}
                           />
-                          <span className="text-xs font-medium text-gray-700">
+                          <span className="text-[10px] uppercase font-bold text-gray-600">
                             {task.priority?.name}
                           </span>
                         </div>
@@ -461,7 +461,7 @@ export default function AdminTasksPage() {
                           {task.department || "N/A"}
                         </p>
                         <p
-                          className={`font-semibold ${TASK_STATUS_CONFIG[task.status].colorClass}`}
+                          className={`font-semibold ${TASK_STATUS_CONFIG[task.status as TaskStatus]?.colorClass || ""}`}
                         >
                           <span className="font-semibold text-gray-700">
                             Status:
