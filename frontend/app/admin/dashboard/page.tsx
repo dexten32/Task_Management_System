@@ -693,7 +693,7 @@ const DashboardPage = () => {
       {/* Create Task Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/90 backdrop-blur-md text-gray-800 rounded-xl p-6 w-full max-w-md relative shadow-xl border border-gray-200">
+          <div className="bg-blue-50 backdrop-blur-md text-gray-800 rounded-xl p-6 w-full max-w-md relative shadow-xl border border-gray-200">
             <h2 className="text-2xl font-semibold mb-6 text-gray-900 text-center">
               Create New Task
             </h2>
@@ -887,8 +887,7 @@ const DashboardPage = () => {
                     type="button"
                     variant="outline"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 rounded-lg border border-gray-300 hover:border-red-400 text-gray-700 
-                                hover:text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-red-600 
+                    className="px-4 py-2 rounded-lg border-2 border-gray-300 hover:border-red-400 hover:border-2 hover:text-red-400 text-gray-700 
                                 transition-all duration-200 shadow-sm hover:shadow-md 
                                 text-sm w-full sm:w-auto"
                   >
@@ -896,7 +895,7 @@ const DashboardPage = () => {
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-blue-500 text-white hover:text-white border border-blue-200 hover:border-blue-400 hover:bg-blue-600 
+                    className="bg-blue-500 text-white border-none hover:border-blue-400 hover:bg-blue-600 
                                 rounded-lg 
                                 px-4 py-2 text-sm w-full sm:w-auto 
                                 transition-all duration-200 hover:shadow-md"
