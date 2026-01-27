@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import API_BASE_URL from "@/lib/api";
@@ -49,6 +50,13 @@ interface DecodedToken {
   iat: number;
   exp?: number;
 }
+
+type Priority = {
+  id: string;
+  code: string;
+  name: string;
+  color: string;
+};
 
 const decodeJwtToken = (token: string): DecodedToken | null => {
   try {
@@ -108,7 +116,12 @@ export default function AdminTasksPage() {
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [priorities, setPriorities] = useState<{ id: number; name: string }[]>(
+    [],
+  );
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedPriority, setSelectedPriority] = useState<string>("All");
+  const [selectedStatus, setSelectedStatus] = useState<string>("All");
 
   useEffect(() => {
     async function fetchDepartments() {
@@ -178,6 +191,32 @@ export default function AdminTasksPage() {
   }, [selectedDepartment]);
 
   useEffect(() => {
+    const fetchPriorities = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Authentication token not found.");
+
+        const res = await fetch(`${API_BASE_URL}/api/priorities`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch priorities");
+
+        const data = await res.json();
+
+        // backend returns { priorities: [...] }
+        setPriorities(data.priorities || []);
+      } catch (err) {
+        console.error("Error fetching priorities:", err);
+      }
+    };
+
+    fetchPriorities();
+  }, []);
+
+  useEffect(() => {
     async function fetchTasks() {
       setLoadingTasks(true);
       try {
@@ -222,13 +261,21 @@ export default function AdminTasksPage() {
     document.body.style.overflow = selectedTaskId ? "hidden" : "";
   }, [selectedTaskId]);
 
-  const filteredTasks = (tasks || []).filter((task) => {
+  const filteredTasks = tasks.filter((task) => {
     const departmentMatch =
       selectedDepartment === "All" || task.department === selectedDepartment;
+
     const userMatch =
-      selectedUser === "All" || task.assignedTo.name === selectedUser;
-    return departmentMatch && userMatch;
-    console.log("Filtered Task: ", filteredTasks);
+      selectedUser === "All" || task.assignedTo?.name === selectedUser;
+
+    const priorityMatch =
+      selectedPriority === "All" || task.priority?.name === selectedPriority;
+    console.log(task.priority?.name);
+
+    const statusMatch =
+      selectedStatus === "All" || task.status === selectedStatus;
+
+    return departmentMatch && userMatch && priorityMatch && statusMatch;
   });
 
   return (
@@ -292,6 +339,41 @@ export default function AdminTasksPage() {
               ))}
             </select>
           )}
+        </div>
+        <div className="flex flex-col">
+          <label className="block text-sm text-gray-600 mb-2">
+            Filter by Status
+          </label>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="bg-white text-gray-800 p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+          >
+            <option value="All">ALL</option>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="COMPLETED">COMPLETED</option>
+            <option value="DELAYED">DELAYED</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="block text-sm text-gray-600 mb-2">
+            Filter by Priority
+          </label>
+
+          <select
+            value={selectedPriority}
+            onChange={(e) => setSelectedPriority(e.target.value)}
+            className="bg-white text-gray-800 p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+          >
+            <option value="All">All</option>
+
+            {priorities.map((priority) => (
+              <option key={priority.id} value={priority.name}>
+                {priority.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
