@@ -105,6 +105,12 @@ export default function EmployeeLayout({ children }: { children: ReactNode }) {
         </div>
         <nav className="mt-8">
           <SidebarLink
+            href="/employee/dashboard"
+            icon={<CircleCheck />}
+            label="Dashboard"
+            sidebarOpen={true}
+          />
+          <SidebarLink
             href="/employee/currentTask"
             icon={<CircleCheck />}
             label="Current Tasks"
@@ -132,6 +138,12 @@ export default function EmployeeLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
         <nav className="mt-8" onClick={closeMobileSidebar}>
+          <SidebarLink
+            href="/employee/dashboard"
+            icon={<CircleCheck />}
+            label="Dashboard"
+            sidebarOpen={true}
+          />
           <SidebarLink
             href="/employee/currentTask"
             icon={<CircleCheck />}

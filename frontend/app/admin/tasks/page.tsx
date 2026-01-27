@@ -349,10 +349,10 @@ export default function AdminTasksPage() {
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="bg-white text-gray-800 p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
           >
-            <option value="All">ALL</option>
-            <option value="ACTIVE">ACTIVE</option>
-            <option value="COMPLETED">COMPLETED</option>
-            <option value="DELAYED">DELAYED</option>
+            <option value="All">All</option>
+            <option value="ACTIVE">Active</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="DELAYED">Delayed</option>
           </select>
         </div>
 

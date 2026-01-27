@@ -16,7 +16,7 @@ export default function Home() {
     if (role === "admin") {
       router.push("/admin/dashboard");
     } else if (role === "employee") {
-      router.push("/employee/currentTask");
+      router.push("/employee/dashboard");
     }
   };
 

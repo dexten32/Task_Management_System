@@ -62,7 +62,7 @@ export default function ServiceCompanyLanding() {
           router.push("/admin/dashboard");
           router.refresh();
         } else if (role === "EMPLOYEE") {
-          router.push("/employee/currentTask");
+          router.push("/employee/dashboard");
           router.refresh();
         } else {
           setError("Unknown user role");
