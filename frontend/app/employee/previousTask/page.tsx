@@ -13,6 +13,7 @@ interface Task {
   status: TaskStatus;
   assignedBy: { id: string; name: string };
   priority: { id: string; name: string; color: string; code: string };
+  createdAt: string;
 }
 
 export default function PreviousTasksSection() {
@@ -43,8 +44,8 @@ export default function PreviousTasksSection() {
 
         const grouped: Record<string, Task[]> = {};
         tasksArray.forEach((task: Task) => {
-          const dateKey = task.deadline
-            ? new Date(task.deadline).toISOString().split("T")[0]
+          const dateKey = task.createdAt
+            ? new Date(task.createdAt).toISOString().split("T")[0]
             : "Unknown Date";
           if (!grouped[dateKey]) grouped[dateKey] = [];
           grouped[dateKey].push(task);
@@ -53,7 +54,7 @@ export default function PreviousTasksSection() {
         Object.values(grouped).forEach((group) =>
           group.sort(
             (a, b) =>
-              new Date(b.deadline).getTime() - new Date(a.deadline).getTime(),
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
           ),
         );
 

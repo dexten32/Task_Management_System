@@ -5,6 +5,7 @@ import API_BASE_URL from "@/lib/api";
 import { format } from "date-fns";
 import { CheckCircle, Clock } from "lucide-react";
 import ClientTaskDetail from "@/components/ClientTaskDetail";
+import { TASK_STATUS_CONFIG } from "@/lib/taskStatus";
 
 interface DecodedToken {
   id: string;
@@ -43,6 +44,7 @@ interface Task {
   };
   assignedBy: { id: string; name: string };
   priority: { code: string; name: string; color: string };
+  createdAt: string;
 }
 
 export default function CurrentTasksSection() {
@@ -110,7 +112,10 @@ export default function CurrentTasksSection() {
 
       const now = new Date();
       const deadline = new Date(task.deadline);
-      const newStatus = now < deadline ? "COMPLETED" : "DELAYED";
+      const newStatus =
+        now < deadline
+          ? TASK_STATUS_CONFIG.COMPLETED.label
+          : TASK_STATUS_CONFIG.DELAYED.label;
 
       const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/status`, {
         method: "PATCH",
@@ -136,7 +141,7 @@ export default function CurrentTasksSection() {
   // Group tasks by deadline date (descending order)
   const groupedTasks = currentTasks.reduce(
     (acc, task) => {
-      const dateKey = format(new Date(task.deadline), "yyyy-MM-dd");
+      const dateKey = format(new Date(task.createdAt), "yyyy-MM-dd");
       if (!acc[dateKey]) acc[dateKey] = [];
       acc[dateKey].push(task);
       return acc;
