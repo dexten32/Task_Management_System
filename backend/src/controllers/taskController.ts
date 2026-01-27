@@ -203,9 +203,9 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
     const now = new Date();
     const tasks = await prisma.task.findMany({
       where: {
-        status: TaskStatus.DELAYED,
+        status: TaskStatus.ACTIVE,
         deadline: {
-          lt: now,
+          lt: new Date(),
         },
       },
       include: {
@@ -317,4 +317,3 @@ export const getTaskById = async (
     res.status(500).json({ message: "Error fetching task" });
   }
 };
-
