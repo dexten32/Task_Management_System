@@ -14,6 +14,7 @@ interface Task {
   department: string;
   status: string;
   assignedBy: { id: string; name: string };
+  createdAt: string;
 }
 
 interface FetchedTask {
@@ -25,6 +26,7 @@ interface FetchedTask {
   status: string;
   assignedBy?: { id: string; name: string };
   priority: { code: string; name: string; color: string };
+  createdAt: string;
 }
 
 interface User {
@@ -198,6 +200,7 @@ export default function AdminTasksPage() {
           status: task.status,
           assignedBy: task.assignedBy || { id: "", name: "N/A" },
           priority: task.priority,
+          createdAt: task.createdAt,
         }));
         setTasks(mappedTasks);
       } catch (error: unknown) {
@@ -300,11 +303,11 @@ export default function AdminTasksPage() {
             [...filteredTasks]
               .sort(
                 (a, b) =>
-                  new Date(b.deadline).getTime() -
-                  new Date(a.deadline).getTime(),
+                  new Date(b.createdAt).getTime() -
+                  new Date(a.createdAt).getTime(),
               )
               .reduce((groups: Record<string, typeof filteredTasks>, task) => {
-                const date = new Date(task.deadline).toLocaleDateString(
+                const date = new Date(task.createdAt).toLocaleDateString(
                   undefined,
                   {
                     year: "numeric",
@@ -354,7 +357,10 @@ export default function AdminTasksPage() {
                           <span className="font-semibold text-gray-700">
                             Deadline:
                           </span>{" "}
-                          {new Date(task.deadline).toLocaleTimeString([], {
+                          {new Date(task.deadline).toLocaleString([], {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
