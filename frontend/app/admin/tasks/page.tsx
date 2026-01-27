@@ -3,6 +3,7 @@
 import API_BASE_URL from "@/lib/api";
 import ClientTaskDetail from "@/components/ClientTaskDetail";
 import React, { useEffect, useState } from "react";
+import { TaskStatus, TASK_STATUS_CONFIG } from "@/lib/taskStatus";
 
 interface Task {
   priority: { code: string; name: string; color: string };
@@ -377,7 +378,9 @@ export default function AdminTasksPage() {
                           </span>{" "}
                           {task.department || "N/A"}
                         </p>
-                        <p>
+                        <p
+                          className={`font-semibold ${TASK_STATUS_CONFIG[task.status].colorClass}`}
+                        >
                           <span className="font-semibold text-gray-700">
                             Status:
                           </span>{" "}
