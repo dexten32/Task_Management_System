@@ -180,19 +180,19 @@ export default function CurrentTasksSection() {
                     >
                       <div className="p-5 pt-2 flex flex-col h-full justify-between">
                         <div>
-                          <div className="flex item-start justify-between mb-2 gap-2">
+                          <div className="flex item-start justify-between mb-2 gap-2 line-clamp-1">
                             <h4 className="text-lg font-semibold text-indigo-700 mb-2">
                               {task.title}
                             </h4>
                             {task.priority && (
-                              <div className="flex items-center gap-1.5 shrink-0">
+                              <div className="flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
                                 <span
-                                  className="h-3 w-3 rounded-full"
+                                  className="h-2 w-2 rounded-full"
                                   style={{
                                     backgroundColor: task.priority.color,
                                   }}
                                 />
-                                <span className="text-xs font-medium text-gray-600 translate-y-[-1px]">
+                                <span className="text-[10px] font-medium uppercase text-gray-600">
                                   {task.priority.name}
                                 </span>
                               </div>

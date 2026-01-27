@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import API_BASE_URL from "@/lib/api";
 import { Loader2, CheckCircle, Clock } from "lucide-react";
 import { TaskStatus, TASK_STATUS_CONFIG } from "@/lib/taskStatus";
@@ -288,12 +288,17 @@ function DetailedTaskCard({
   return (
     <div
       onClick={onClick}
-      className={`relative bg-white shadow-sm rounded-lg border ${isDelayed ? "border-red-200 bg-red-50/30" : "border-indigo-100 hover:border-indigo-300"
-        } hover:shadow-md transition-all duration-200 cursor-pointer p-4`}
+      className={`relative bg-white shadow-sm rounded-lg border ${
+        isDelayed
+          ? "border-red-200 bg-red-50/30"
+          : "border-indigo-100 hover:border-indigo-300"
+      } hover:shadow-md transition-all duration-200 cursor-pointer p-4`}
     >
       <div className="flex flex-col gap-3">
         <div className="flex justify-between items-start gap-2">
-          <h4 className={`text-base font-semibold ${isDelayed ? "text-red-700" : "text-indigo-700"} line-clamp-1`}>
+          <h4
+            className={`text-base font-semibold ${isDelayed ? "text-red-700" : "text-indigo-700"} line-clamp-1`}
+          >
             {task.title}
           </h4>
           {task.priority && (
@@ -309,9 +314,7 @@ function DetailedTaskCard({
           )}
         </div>
 
-        <p className="text-gray-600 text-sm line-clamp-2">
-          {task.description}
-        </p>
+        <p className="text-gray-600 text-sm line-clamp-2">{task.description}</p>
 
         <div className="flex items-center justify-between mt-1">
           <div className="flex flex-col gap-1">
@@ -322,7 +325,10 @@ function DetailedTaskCard({
               </span>
             </div>
             <div className="text-xs text-gray-500">
-              By: <span className="font-medium text-indigo-600">{task.assignedBy?.name || "N/A"}</span>
+              By:{" "}
+              <span className="font-medium text-indigo-600">
+                {task.assignedBy?.name || "N/A"}
+              </span>
             </div>
           </div>
 

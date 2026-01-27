@@ -138,12 +138,12 @@ export default function PreviousTasksSection() {
                       </h3>
 
                       {task.priority && (
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
                           <span
-                            className="h-3 w-3 rounded-full"
+                            className="h-2 w-2 rounded-full"
                             style={{ backgroundColor: task.priority.color }}
                           />
-                          <span className="text-xs font-medium text-gray-600">
+                          <span className="text-[10px] font-medium text-gray-600 uppercase">
                             {task.priority.name}
                           </span>
                         </div>
