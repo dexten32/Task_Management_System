@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -53,6 +54,10 @@ export default function CurrentTasksSection() {
   const [error, setError] = useState<string | null>(null);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedPriority, setSelectedPriority] = useState<string>("All");
+  const [priorities, setPriorities] = useState<{ id: number; name: string }[]>(
+    [],
+  );
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -138,8 +143,40 @@ export default function CurrentTasksSection() {
     }
   };
 
-  // Group tasks by deadline date (descending order)
-  const groupedTasks = currentTasks.reduce(
+  useEffect(() => {
+    const fetchPriorities = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Authentication token not found.");
+
+        const res = await fetch(`${API_BASE_URL}/api/priorities`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch priorities");
+
+        const data = await res.json();
+        setPriorities(data.priorities || []);
+      } catch (err) {
+        console.error("Error fetching priorities:", err);
+      }
+    };
+
+    fetchPriorities();
+  }, []);
+
+  // 1. Filter tasks
+  const filteredTasks = currentTasks.filter((task) => {
+    const priorityMatch =
+      selectedPriority === "All" || task.priority?.name === selectedPriority;
+
+    return priorityMatch;
+  });
+
+  // 2. Group filtered tasks
+  const groupedTasks = filteredTasks.reduce(
     (acc, task) => {
       const dateKey = format(new Date(task.createdAt), "yyyy-MM-dd");
       if (!acc[dateKey]) acc[dateKey] = [];
@@ -159,6 +196,27 @@ export default function CurrentTasksSection() {
         My Current Tasks
       </h2>
 
+      {/* Filters */}
+      <div className="mb-8 flex flex-wrap gap-4">
+        <div className="flex flex-col">
+          <label className="block text-sm font-medium text-gray-600 mb-1">
+            Priority
+          </label>
+          <select
+            value={selectedPriority}
+            onChange={(e) => setSelectedPriority(e.target.value)}
+            className="bg-white text-gray-800 p-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all min-w-[150px]"
+          >
+            <option value="All">All</option>
+            {priorities.map((priority) => (
+              <option key={priority.id} value={priority.name}>
+                {priority.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {loading && (
         <p className="text-center text-lg text-indigo-500">Loading tasks...</p>
       )}
@@ -167,8 +225,8 @@ export default function CurrentTasksSection() {
       {!loading && !error && (
         <>
           {sortedDates.length === 0 ? (
-            <p className="text-gray-500 text-center">
-              No active tasks assigned to you.
+            <p className="text-gray-500 text-center mt-10">
+              No tasks found with the selected filters.
             </p>
           ) : (
             sortedDates.map((date: string) => (
@@ -214,31 +272,35 @@ export default function CurrentTasksSection() {
                               "dd MMM yyyy, hh:mm a",
                             )}
                           </div>
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-gray-600 mb-2">
                             Assigned by:{" "}
                             <span className="font-medium text-indigo-600">
-                              {
-                                (console.log(
-                                  "Assigned by: ",
-                                  task.assignedBy?.name,
-                                ),
-                                task.assignedBy?.name || "N/A")
-                              }
+                              {task.assignedBy?.name || "N/A"}
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            Status:{" "}
+                            <span
+                              className={`font-semibold ${TASK_STATUS_CONFIG[task.status as keyof typeof TASK_STATUS_CONFIG]?.colorClass || "text-gray-600"}`}
+                            >
+                              {task.status}
                             </span>
                           </div>
                         </div>
 
                         <div className="mt-4 flex justify-end">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleComplete(task.id);
-                            }}
-                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors duration-200"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Mark Complete
-                          </button>
+                          {task.status !== "COMPLETED" && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleComplete(task.id);
+                              }}
+                              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors duration-200"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              Mark Complete
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
