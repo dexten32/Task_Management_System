@@ -4,6 +4,13 @@ import React, { useEffect, useState } from "react";
 import API_BASE_URL from "@/lib/api";
 import ClientTaskDetail from "@/components/ClientTaskDetail";
 import { TaskStatus, TASK_STATUS_CONFIG } from "@/lib/taskStatus";
+import {
+  SelectField,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Task {
   id: string;
@@ -17,10 +24,39 @@ interface Task {
 }
 
 export default function PreviousTasksSection() {
-  const [groupedTasks, setGroupedTasks] = useState<Record<string, Task[]>>({});
+  const [previousTasks, setPreviousTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedPriority, setSelectedPriority] = useState<string>("All");
+  const [selectedStatus, setSelectedStatus] = useState<string>("All");
+  const [priorities, setPriorities] = useState<{ id: number; name: string }[]>(
+    [],
+  );
+
+  useEffect(() => {
+    const fetchPriorities = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Authentication token not found.");
+
+        const res = await fetch(`${API_BASE_URL}/api/priorities`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch priorities");
+
+        const data = await res.json();
+        setPriorities(data.priorities || []);
+      } catch (err) {
+        console.error("Error fetching priorities:", err);
+      }
+    };
+
+    fetchPriorities();
+  }, []);
 
   useEffect(() => {
     const fetchPreviousTasks = async () => {
@@ -42,23 +78,7 @@ export default function PreviousTasksSection() {
             : [];
         console.log("Previous Tasks Data: ", tasksArray);
 
-        const grouped: Record<string, Task[]> = {};
-        tasksArray.forEach((task: Task) => {
-          const dateKey = task.createdAt
-            ? new Date(task.createdAt).toISOString().split("T")[0]
-            : "Unknown Date";
-          if (!grouped[dateKey]) grouped[dateKey] = [];
-          grouped[dateKey].push(task);
-        });
-
-        Object.values(grouped).forEach((group) =>
-          group.sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          ),
-        );
-
-        setGroupedTasks(grouped);
+        setPreviousTasks(tasksArray);
       } catch (err) {
         console.error("Error fetching previous tasks:", err);
         setError("Unable to load previous tasks. Please try again.");
@@ -81,15 +101,104 @@ export default function PreviousTasksSection() {
     }
   };
 
+  const filteredTasks = previousTasks.filter((task) => {
+    // STRICTLY EXCLUDE ACTIVE TASKS
+    if (task.status === "ACTIVE") return false;
+
+    // Filter by Priority
+    const priorityMatch =
+      selectedPriority === "All" || task.priority?.name === selectedPriority;
+
+    // Filter by Status
+    const statusMatch =
+      selectedStatus === "All" || task.status === selectedStatus;
+
+    return priorityMatch && statusMatch;
+  });
+
+  // Group by date
+  const groupedTasks = filteredTasks.reduce(
+    (acc, task) => {
+      const dateKey = task.createdAt
+        ? new Date(task.createdAt).toISOString().split("T")[0]
+        : "Unknown Date";
+      if (!acc[dateKey]) acc[dateKey] = [];
+      acc[dateKey].push(task);
+      return acc;
+    },
+    {} as Record<string, Task[]>,
+  );
+
   const sortedDates = Object.keys(groupedTasks).sort(
     (a, b) => new Date(b).getTime() - new Date(a).getTime(),
   );
 
   return (
-    <div className="p-8 bg-blue-50 min-h-screen">
+    <div className="p-6 bg-blue-50 min-h-screen">
       <h2 className="text-3xl font-bold mb-6 text-gray-800">
         Completed & Delayed Tasks
       </h2>
+
+
+
+      // ... existing code ...
+
+      {/* Filters */}
+      <div className="mb-8 flex flex-wrap gap-4">
+        <div className="flex flex-col">
+          <label className="block text-sm font-medium text-gray-600 mb-1">
+            Priority
+          </label>
+          <SelectField
+            value={selectedPriority}
+            onValueChange={setSelectedPriority}
+          >
+            <SelectTrigger className="w-[180px] bg-white border-gray-300">
+              <SelectValue placeholder="All Priorities" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Priorities</SelectItem>
+              {priorities.map((priority) => (
+                <SelectItem key={priority.id} value={priority.name}>
+                  <div className="flex items-center gap-2">
+                    {/* Placeholder colors since we might not have color in state yet */}
+                    <span
+                      className={`h-2 w-2 rounded-full ${priority.name === 'High' ? 'bg-red-500' :
+                        priority.name === 'Medium' ? 'bg-amber-500' :
+                          priority.name === 'Low' ? 'bg-emerald-500' : 'bg-gray-400'
+                        }`}
+                    />
+                    {priority.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </SelectField>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="block text-sm font-medium text-gray-600 mb-1">
+            Status
+          </label>
+          <SelectField
+            value={selectedStatus}
+            onValueChange={setSelectedStatus}
+          >
+            <SelectTrigger className="w-[180px] bg-white border-gray-300">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Statuses</SelectItem>
+              <SelectItem value="COMPLETED">
+                <span className="text-green-600 font-medium">Completed</span>
+              </SelectItem>
+              <SelectItem value="DELAYED">
+                <span className="text-amber-600 font-medium">Delayed</span>
+              </SelectItem>
+            </SelectContent>
+          </SelectField>
+        </div>
+      </div>
 
       {/* Loading State */}
       {loading && (
@@ -103,8 +212,8 @@ export default function PreviousTasksSection() {
 
       {/* Main Content */}
       {!loading && !error && sortedDates.length === 0 && (
-        <p className="text-gray-500 text-center">
-          No completed or delayed tasks found.
+        <p className="text-gray-500 text-center mt-10">
+          No filtered tasks found.
         </p>
       )}
 
@@ -116,10 +225,10 @@ export default function PreviousTasksSection() {
                 {dateKey === "Unknown Date"
                   ? "Unknown Deadline"
                   : new Date(dateKey).toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -127,11 +236,10 @@ export default function PreviousTasksSection() {
                   <div
                     key={task.id}
                     onClick={() => setSelectedTaskId(task.id)}
-                    className={`relative cursor-pointer border border-gray-200 rounded-2xl shadow-sm pt-3 p-4 bg-white hover:shadow-md hover:border-indigo-200 transition ${
-                      task.status === TASK_STATUS_CONFIG.DELAYED.label
-                        ? TASK_STATUS_CONFIG.DELAYED.colorClass
-                        : ""
-                    }`}
+                    className={`relative cursor-pointer border border-gray-200 rounded-2xl shadow-sm pt-3 p-4 bg-white hover:shadow-md hover:border-indigo-200 transition ${task.status === TASK_STATUS_CONFIG.DELAYED.label
+                      ? TASK_STATUS_CONFIG.DELAYED.colorClass
+                      : ""
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <h3 className="text-xl font-semibold text-blue-700 leading-tight">

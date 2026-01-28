@@ -7,6 +7,13 @@ import { format } from "date-fns";
 import { CheckCircle, Clock } from "lucide-react";
 import ClientTaskDetail from "@/components/ClientTaskDetail";
 import { TASK_STATUS_CONFIG } from "@/lib/taskStatus";
+import {
+  SelectField,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DecodedToken {
   id: string;
@@ -202,18 +209,59 @@ export default function CurrentTasksSection() {
           <label className="block text-sm font-medium text-gray-600 mb-1">
             Priority
           </label>
-          <select
-            value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
-            className="bg-white text-gray-800 p-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all min-w-[150px]"
-          >
-            <option value="All">All</option>
-            {priorities.map((priority) => (
-              <option key={priority.id} value={priority.name}>
-                {priority.name}
-              </option>
-            ))}
-          </select>
+
+
+          // ... existing code ...
+
+          <div className="flex flex-col">
+            <label className="block text-sm font-medium text-gray-600 mb-1">
+              Priority
+            </label>
+            <SelectField
+              value={selectedPriority}
+              onValueChange={setSelectedPriority}
+            >
+              <SelectTrigger className="w-[180px] bg-white border-gray-300">
+                <SelectValue placeholder="Filter by Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Priorities</SelectItem>
+                {priorities.map((priority) => (
+                  <SelectItem key={priority.id} value={priority.name}>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{
+                          backgroundColor:
+                            priority.name === "High"
+                              ? "#ef4444" // red
+                              : priority.name === "Medium"
+                                ? "#f59e0b" // amber
+                                : priority.name === "Low"
+                                  ? "#10b981" // emerald
+                                  : "#6b7280", // gray (default) - actually we can probably use priority.color if available in this scope?
+                          // Wait, 'priorities' state in 'currentTask/page.tsx' likely doesn't have the 'color' property in the state definition locally?
+                          // Let's check the state definition in 'currentTask/page.tsx'
+                          // `const [priorities, setPriorities] = useState<{ id: number; name: string }[]>([]);`
+                          // Ah, the state definition is limited. The API probably returns color.
+                          // I should update the state definition to include color or just rely on name mapping. 
+                          // The backend response `data.priorities` usually has it.
+                          // Let's assume for now I can map generic colors or updated state later.
+                          // ACTUALLY, in the Task list rendering, it DOES use `task.priority.color`.
+                          // The fetching of priorities (lines 146-168) converts `data.priorities`.
+                          // Let's update the type definition in strict TS if needed, but for now I'll use a safer mapping
+                          // OR just Render the name.
+                          // I'll try to use the color if available, but I need to update the state type.
+                          // To be safe I will use a simple mapping based on name for the filter dropdown to ensure it looks good immediately.
+                        }}
+                      />
+                      {priority.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </SelectField>
+          </div>
         </div>
       </div>
 
