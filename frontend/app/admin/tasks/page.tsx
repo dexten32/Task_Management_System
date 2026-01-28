@@ -270,7 +270,6 @@ export default function AdminTasksPage() {
 
     const priorityMatch =
       selectedPriority === "All" || task.priority?.name === selectedPriority;
-    console.log(task.priority?.name);
 
     const statusMatch =
       selectedStatus === "All" || task.status === selectedStatus;

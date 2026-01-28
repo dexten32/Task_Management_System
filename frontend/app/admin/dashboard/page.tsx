@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
@@ -23,6 +24,8 @@ interface User {
   email: string;
   departmentId: string | null;
   departmentName?: string;
+  approved?: boolean;
+  role?: string;
 }
 
 interface Task {
@@ -33,6 +36,10 @@ interface Task {
   assignedTo?: { name: string; id: string };
   assignedBy?: { name: string; id: string };
   deadline: string;
+  status?: string; // Added status for filtering
+  department?: string; // Added for filtering convenience
+  departmentId?: string;
+  createdAt?: string;
 }
 
 interface PendingUser extends User {
@@ -59,18 +66,30 @@ const DashboardPage = () => {
   const [selectedDeptId, setSelectedDeptId] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Data State
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
+  const [backendDelayedTasks, setBackendDelayedTasks] = useState<Task[]>([]);
+
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
-  const [backendDelayedTasks, setBackendDelayedTasks] = useState<Task[]>([]);
+
+  // Loading & Error States
   const [isModalDataLoading, setIsModalDataLoading] = useState(true);
   const [modalFetchError, setModalFetchError] = useState<string | null>(null);
+
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [priorities, setPriorities] = useState<Priority[]>([]);
   const [selectedPriorityId, setSelectedPriorityId] = useState<number | null>(
     null,
   );
+
+  // Filters State
+  const [filterDept, setFilterDept] = useState<string>("All");
+  const [filterUser, setFilterUser] = useState<string>("All");
+  const [filterStatus, setFilterStatus] = useState<string>("All");
+  const [filterPriority, setFilterPriority] = useState<string>("All");
 
   useEffect(() => {
     const fetchUsersAndDepartments = async () => {
@@ -78,89 +97,42 @@ const DashboardPage = () => {
       setModalFetchError(null);
       try {
         const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("Authentication token not found.");
-        }
+        if (!token) throw new Error("Authentication token not found.");
 
         const userResponse = await fetch(`${API_BASE_URL}/api/users`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        if (!userResponse.ok) {
-          const errorData = await userResponse.json();
-          throw new Error(errorData.message || "Failed to fetch users");
-        }
+        if (!userResponse.ok) throw new Error("Failed to fetch users");
         const usersData = await userResponse.json();
-        console.log("1. Raw usersData from API (full response):", usersData);
         const usersArray = usersData.users || [];
-        const mappedUsers: User[] = usersArray.map(
-          (user: {
-            department: { id: string; name: string } | null;
-            id: string;
-            name: string;
-            email: string;
-            departmentId: string | null;
-            approved: boolean;
-            role: string;
-          }) => {
-            console.log(
-              "User object *inside map function* (raw from API, before mapping):",
-              user,
-            );
-            return {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              departmentId: user.departmentId,
-              role: user.role,
-              approved: user.approved,
-            };
-          },
-        );
-        console.log(
-          "2. Mapped users (before setting allUsers state):",
-          mappedUsers,
-        );
+
+        const mappedUsers: User[] = usersArray.map((user: any) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          departmentId: user.departmentId,
+          role: user.role,
+          approved: user.approved,
+        }));
         setAllUsers(mappedUsers);
 
         const deptResponse = await fetch(`${API_BASE_URL}/api/departments`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        if (!deptResponse.ok) {
-          const errorData = await deptResponse.json();
-          throw new Error(errorData.message || "Failed to fetch departments");
-        }
+        if (!deptResponse.ok) throw new Error("Failed to fetch departments");
         const departmentsData = await deptResponse.json();
         setDepartments(departmentsData.departments || []);
+
         const priorityResponse = await fetch(`${API_BASE_URL}/api/priorities`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!priorityResponse.ok) {
-          const errorData = await priorityResponse.json();
-          throw new Error(errorData.message || "Failed to fetch priorities");
-        }
-
+        if (!priorityResponse.ok) throw new Error("Failed to fetch priorities");
         const priorityData = await priorityResponse.json();
-        console.log("Fetched priorities:", priorityData);
-
         setPriorities(priorityData.priorities || []);
       } catch (error: unknown) {
-        console.error("Failed to fetch users and departments", error);
-        setModalFetchError(
-          typeof error === "object" && error !== null && "message" in error
-            ? (error as { message?: string }).message ||
-            "Failed to load data. Please check your connection."
-            : "Failed to load data. Please check your connection.",
-        );
+        console.error("Failed to fetch users/departments/priorities", error);
+        setModalFetchError("Failed to load data.");
       } finally {
         setIsModalDataLoading(false);
       }
@@ -168,103 +140,39 @@ const DashboardPage = () => {
     fetchUsersAndDepartments();
   }, []);
 
-  useEffect(() => {
-    const fetchPendingUsers = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("Authentication token not found.");
-        }
-        const response = await fetch(`${API_BASE_URL}/api/users/pending`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.message || "Failed to fetch pending user requests",
-          );
-        }
-        const data = await response.json();
-        setPendingUsers(data.users || []);
-      } catch (error: unknown) {
-        console.error("Failed to fetch pending users", error);
-        setError(
-          typeof error === "object" && error !== null && "message" in error
-            ? (error as { message?: string }).message ||
-            "Failed to load pending user requests."
-            : "Failed to load pending user requests.",
-        );
-      }
-    };
-
-    fetchPendingUsers();
-  }, []);
-
   const fetchTasks = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Authentication token not found.");
-      }
+      if (!token) throw new Error("Authentication token not found.");
+      // Using recentlimit for dashboard
       const res = await fetch(`${API_BASE_URL}/api/tasks/recentlimit`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to fetch recent tasks");
-      }
+      if (!res.ok) throw new Error("Failed to fetch recent tasks");
       const data = await res.json();
       setRecentTasks(data || []);
-      console.log("5. Recent tasks fetched:", data);
     } catch (err: unknown) {
       console.error("Failed to fetch recent tasks", err);
-      setError(
-        typeof err === "object" && err !== null && "message" in err
-          ? (err as { message?: string }).message || "Failed to load tasks."
-          : "Failed to load tasks.",
-      );
     }
   };
+
+  const fetchBackendDelayedTasks = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token not found.");
+      const res = await fetch(`${API_BASE_URL}/api/tasks/delayed`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch delayed tasks");
+      const data = await res.json();
+      setBackendDelayedTasks(data.tasks || []);
+    } catch (err: unknown) {
+      console.error("Failed to fetch delayed tasks", err);
+    }
+  };
+
   useEffect(() => {
     fetchTasks();
-  }, []);
-
-  useEffect(() => {
-    const fetchBackendDelayedTasks = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("Authentication token not found.");
-        }
-        const res = await fetch(`${API_BASE_URL}/api/tasks/delayed`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message || "Failed to fetch delayed tasks");
-        }
-        const data = await res.json();
-        setBackendDelayedTasks(data.tasks || []);
-      } catch (err: unknown) {
-        console.error("Failed to fetch backend delayed tasks", err);
-        setError(
-          typeof err === "object" && err !== null && "message" in err
-            ? (err as { message?: string }).message ||
-            "Failed to load delayed tasks."
-            : "Failed to load delayed tasks.",
-        );
-      }
-    };
-
     fetchBackendDelayedTasks();
   }, []);
 
@@ -277,9 +185,65 @@ const DashboardPage = () => {
     document.body.style.overflow = selectedTaskId ? "hidden" : "";
   }, [selectedTaskId]);
 
-  const filteredUsers = allUsers.filter((user) => {
-    return user.departmentId === selectedDeptId;
-  });
+  // --- FILTERING LOGIC ---
+  const applyFilters = (tasks: Task[]) => {
+    return tasks.filter((task) => {
+      // Since the task object structure from these endpoints might differ slightly, handle gracefully
+      const taskDeptName =
+        allUsers.find((u) => u.id === task.assignedTo?.id)?.departmentName ||
+        "N/A"; // Best effort mapping if dept not on task
+
+      const matchesDept =
+        filterDept === "All" ||
+        task.department === filterDept ||
+        taskDeptName === filterDept; // Check both if available
+
+      const matchesUser =
+        filterUser === "All" || task.assignedTo?.name === filterUser;
+
+      const matchesPriority =
+        filterPriority === "All" || task.priority?.name === filterPriority;
+
+      const matchesStatus =
+        filterStatus === "All" ||
+        task.status === filterStatus ||
+        (filterStatus === "DELAYED" &&
+          new Date(task.deadline) < new Date() &&
+          task.status !== "COMPLETED"); // Basic check if status field missing
+
+      return matchesDept && matchesUser && matchesPriority && matchesStatus;
+    });
+  };
+
+  const filteredRecentTasks = applyFilters(recentTasks);
+  const filteredDelayedTasks = applyFilters(backendDelayedTasks);
+  const totalVisibleTasks =
+    filteredRecentTasks.length + filteredDelayedTasks.length;
+  const activeCount = filteredRecentTasks.filter(
+    (t) => t.status === "ACTIVE",
+  ).length;
+  const delayedCount =
+    filteredDelayedTasks.length +
+    filteredRecentTasks.filter((t) => t.status === "DELAYED").length;
+  const completedCount = filteredRecentTasks.filter(
+    (t) => t.status === "COMPLETED",
+  ).length;
+
+  // Pie Chart Data
+  const chartData = [
+    { label: "Active", value: activeCount, color: "#6366f1" }, // indigo-500
+    { label: "Completed", value: completedCount, color: "#10b981" }, // emerald-500
+    { label: "Delayed", value: delayedCount, color: "#f59e0b" }, // amber-500
+  ].filter((d) => d.value > 0);
+
+  const totalChartValue = chartData.reduce((acc, curr) => acc + curr.value, 0);
+  let cumulativePercent = 0;
+
+  const getCoordinatesForPercent = (percent: number) => {
+    const x = Math.cos(2 * Math.PI * percent);
+    const y = Math.sin(2 * Math.PI * percent);
+    return [x, y];
+  };
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -300,9 +264,7 @@ const DashboardPage = () => {
 
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Authentication token not found.");
-      }
+      if (!token) throw new Error("Authentication token not found.");
       const response = await fetch(`${API_BASE_URL}/api/tasks/assign`, {
         method: "POST",
         headers: {
@@ -326,6 +288,7 @@ const DashboardPage = () => {
         setDeadline("");
         setSelectedUser("");
         setSelectedDeptId("");
+        setSelectedPriorityId(null);
         setTimeout(() => setIsModalOpen(false), 1500);
         fetchTasks();
       } else {
@@ -333,361 +296,307 @@ const DashboardPage = () => {
         setError(data.message || "Failed to create task");
       }
     } catch (err: unknown) {
-      setError(
-        typeof err === "object" && err !== null && "message" in err
-          ? (err as { message?: string }).message || "Error creating task"
-          : "Error creating task",
-      );
+      setError("Error creating task");
     }
-  };
-
-  const handleApproveUser = async (userId: string) => {
-    console.log("APPROVE USER: Attempting to approve user with ID:", userId);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Authentication token not found.");
-      }
-      const response = await fetch(
-        `${API_BASE_URL}/api/users/approve/${userId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      console.log("APPROVE USER: Response status:", response.status);
-      if (response.ok) {
-        setPendingUsers(pendingUsers.filter((user) => user.id !== userId));
-      } else {
-        const data = await response.json();
-        setError(data.message || "Failed to approve user");
-      }
-    } catch (error: unknown) {
-      console.error("APPROVE USER: Error approving user:", error);
-      setError(
-        typeof error === "object" && error !== null && "message" in error
-          ? (error as { message?: string }).message || "Failed to approve user."
-          : "Failed to approve user.",
-      );
-    }
-  };
-
-  const handleDeclineUser = async (userId: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Authentication token not found.");
-      }
-      const response = await fetch(
-        `${API_BASE_URL}/api/users/decline/${userId}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      if (response.ok) {
-        setPendingUsers(pendingUsers.filter((user) => user.id !== userId));
-      } else {
-        const data = await response.json();
-        setError(data.message || "Failed to decline user");
-      }
-    } catch (error: unknown) {
-      console.error("Error declining user:", error);
-      setError(
-        typeof error === "object" && error !== null && "message" in error
-          ? (error as { message?: string }).message || "Failed to decline user."
-          : "Failed to decline user.",
-      );
-    }
-  };
-
-  const handleDepartmentChange = async (
-    userId: string,
-    departmentId: string,
-  ) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Authentication token not found.");
-      }
-      const response = await fetch(
-        `${API_BASE_URL}/api/users/update/${userId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ departmentId, role: "EMPLOYEE" }),
-        },
-      );
-      if (response.ok) {
-        setPendingUsers(
-          pendingUsers.map((user) =>
-            user.id === userId ? { ...user, departmentId: departmentId } : user,
-          ),
-        );
-
-        setAllUsers(
-          allUsers.map((user) =>
-            user.id === userId ? { ...user, departmentId: departmentId } : user,
-          ),
-        );
-      } else {
-        const data = await response.json();
-        setError(data.message || "Failed to update department");
-      }
-    } catch (error: unknown) {
-      console.error("Error updating user department:", error);
-      setError(
-        typeof error === "object" && error !== null && "message" in error
-          ? (error as { message?: string }).message ||
-          "Failed to update department."
-          : "Failed to update department.",
-      );
-    }
-  };
-
-  const getDepartmentName = (departmentId: string | null) => {
-    if (!departmentId) return "N/A";
-    const department = departments.find((d) => d.id === departmentId);
-    return department ? department.name : "Unknown";
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-50 text-gray-900 p-4 md:p-6 lg:p-8 font-sans">
-      <style>
-        {`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-      `}
-      </style>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+          Dashboard
+        </h1>
+        <Button
+          size="sm"
+          onClick={() => setIsModalOpen(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md rounded-lg px-4 py-2 text-sm"
+        >
+          + Create New Task
+        </Button>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Left Column */}
-        <div className="flex flex-col gap-6 lg:col-span-2 order-2 lg:order-1">
-          {/* Recent Tasks */}
-          <Card className="rounded-xl shadow-lg bg-white/90 backdrop-blur-sm border border-gray-200">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 md:p-6 border-b border-gray-200 gap-3 sm:gap-0">
-              <CardTitle className="text-lg md:text-xl font-semibold text-gray-800">
-                Recent Tasks
-              </CardTitle>
-              <Button
-                size="sm"
-                onClick={() => setIsModalOpen(true)}
-                className="bg-slate-100 text-gray-700 hover:text-white hover:bg-gradient-to-r hover:from-blue-600 hover:to-indigo-600 transition duration-200 rounded-lg px-4 py-2 text-sm shadow-sm"
-              >
-                + New Task
-              </Button>
+      {/* MAIN GRID LAYOUT */}
+      <div className="flex flex-col xl:flex-row gap-6">
+        {/* LEFT COLUMN: ANALYTICS & SIDEBAR */}
+        <div className="w-full xl:w-80 flex flex-col gap-6 shrink-0 order-2 xl:order-1">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 xl:grid-cols-1 gap-4">
+            <Card className="bg-white/80 backdrop-blur-sm border-indigo-100 shadow-sm">
+              <CardContent className="p-4 flex flex-col items-center justify-center">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+                  Visible Tasks
+                </p>
+                <p className="text-3xl font-bold text-gray-800 mt-1">
+                  {totalVisibleTasks}
+                </p>
+              </CardContent>
+            </Card>
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="bg-indigo-50 border-indigo-100 shadow-sm">
+                <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+                  <p className="text-[10px] text-indigo-600 font-bold uppercase">
+                    Active
+                  </p>
+                  <p className="text-xl font-bold text-indigo-800">
+                    {activeCount}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-amber-50 border-amber-100 shadow-sm">
+                <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+                  <p className="text-[10px] text-amber-600 font-bold uppercase">
+                    Delayed
+                  </p>
+                  <p className="text-xl font-bold text-amber-800">
+                    {delayedCount}
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-            <CardContent className="p-4 md:p-6">
-              <ul className="space-y-4">
-                {recentTasks.length > 0 ? (
-                  recentTasks.map((task) => (
-                    <li
-                      key={task.id}
-                      onClick={() => setSelectedTaskId(task.id)}
-                      className="relative p-4 border border-gray-200 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-indigo-200 transition duration-200 cursor-pointer"
-                    >
-                      {/* Priority Indicator*/}
-                      {task.priority && (
-                        <div className="absolute top-3 right-3 flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: task.priority.color }}
-                          />
-                          <span className="text-[10px] uppercase font-bold text-gray-600">
-                            {task.priority.name}
-                          </span>
-                        </div>
-                      )}
-                      {/* Main Task Content */}
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Title:</strong>{" "}
-                          <span className="font-medium text-gray-800">
-                            {task.title}
-                          </span>
-                        </p>
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Description:</strong> {task.description}
-                        </p>
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Assigned To:</strong>{" "}
-                          <span className="font-medium text-gray-800">
-                            {task.assignedTo?.name || "N/A"}
-                          </span>
-                        </p>
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Assigned By:</strong>{" "}
-                          <span className="font-medium text-gray-800">
-                            {task.assignedBy?.name || "N/A"}
-                          </span>
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          <strong>Deadline:</strong>{" "}
-                          {task.deadline
-                            ? format(new Date(task.deadline), "PPPpp")
-                            : "N/A"}
-                        </p>
-                      </div>
-                    </li>
-                  ))
-                ) : (
-                  <li className="p-4 text-gray-500 text-center text-sm">
-                    No recent tasks
-                  </li>
-                )}
-              </ul>
-            </CardContent>
-          </Card>
+          </div>
 
-          {/* Delayed Tasks */}
-          <Card className="rounded-xl shadow-lg bg-white/90 backdrop-blur-sm border border-gray-200">
-            <CardHeader className="p-4 md:p-6 border-b border-gray-200">
-              <CardTitle className="text-lg md:text-xl font-semibold text-gray-800">
-                Delayed Tasks
+          {/* Donut Chart */}
+          <Card className="bg-white border-gray-200 shadow-sm overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-gray-700">
+                Analytics
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 md:p-6">
-              <div className="space-y-4">
-                {backendDelayedTasks.length > 0 ? (
-                  backendDelayedTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      onClick={() => setSelectedTaskId(task.id)}
-                      className="relative flex flex-col p-4 border border-red-200 rounded-lg bg-red-50 shadow-sm hover:border-red-300 hover:shadow-md transition duration-200 cursor-pointer"
-                    >
-                      {/* Priority Indicator*/}
-                      {task.priority && (
-                        <div className="absolute top-3 right-3 flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: task.priority.color }}
+            <CardContent className="flex flex-col items-center justify-center pb-6">
+              {totalChartValue === 0 ? (
+                <div className="h-32 w-32 rounded-full border-4 border-gray-100 flex items-center justify-center text-xs text-gray-400">
+                  No Data
+                </div>
+              ) : (
+                <div className="relative h-32 w-32">
+                  <svg
+                    viewBox="-1 -1 2 2"
+                    style={{ transform: "rotate(-90deg)" }}
+                    className="w-full h-full"
+                  >
+                    {chartData.map((slice, i) => {
+                      const start = cumulativePercent;
+                      const end = start + slice.value / totalChartValue;
+                      cumulativePercent = end;
+                      const [startX, startY] = getCoordinatesForPercent(start);
+                      const [endX, endY] = getCoordinatesForPercent(end);
+                      const largeArcFlag =
+                        slice.value / totalChartValue > 0.5 ? 1 : 0;
+                      if (slice.value === totalChartValue)
+                        return (
+                          <circle
+                            key={i}
+                            cx="0"
+                            cy="0"
+                            r="1"
+                            fill={slice.color}
                           />
-                          <span className="text-[10px] uppercase font-bold text-gray-600">
-                            {task.priority.name}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-700 text-base">
-                          {task.title}
-                        </p>
-                        <p className="text-sm text-red-500 mt-1">
-                          Overdue since:{" "}
-                          {task.deadline
-                            ? format(new Date(task.deadline), "PPPpp")
-                            : "N/A"}
-                        </p>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedTaskId(task.id);
-                          }}
-                          className="bg-red-600 text-white rounded-lg px-4 py-2 mt-3 text-sm hover:bg-red-700 transition duration-200"
-                        >
-                          Complete
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-center text-sm">
-                    No delayed tasks.
-                  </p>
-                )}
+                        );
+                      return (
+                        <path
+                          key={i}
+                          d={`M 0 0 L ${startX} ${startY} A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY} Z`}
+                          fill={slice.color}
+                        />
+                      );
+                    })}
+                  </svg>
+                </div>
+              )}
+
+              {/* Legend */}
+              <div className="mt-6 flex flex-wrap justify-center gap-x-4 gap-y-2">
+                {chartData.map((item, index) => (
+                  <div key={index} className="flex items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 rounded-full ring-2 ring-white shadow-sm"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="text-xs text-gray-600 font-medium">
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column - User Requests */}
-        {/* <Card className="h-full rounded-xl shadow-lg bg-white/90 backdrop-blur-sm border border-gray-200 order-1 lg:order-2">
-          <CardHeader className="p-4 md:p-6 border-b border-gray-200">
-            <CardTitle className="text-lg md:text-xl font-semibold text-gray-800">
-              User Requests
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6">
-            <div className="space-y-4">
-              {pendingUsers.length > 0 ? (
-                pendingUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex flex-col p-4 border border-gray-200 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-indigo-200 transition duration-200"
-                  >
-                    <p className="font-medium text-gray-800 text-base">
-                      {user.name}
-                    </p>
-                    <p className="text-sm text-gray-500 break-all mb-2">
-                      {user.email}
-                    </p>
-                    <div className="relative mb-3">
-                      <SelectField
-                        value={
-                          typeof user.departmentId === "object" &&
-                          user.departmentId !== null
-                            ? user.departmentId
-                            : user.departmentId || ""
-                        }
-                        onValueChange={(value) =>
-                          handleDepartmentChange(user.id, value)
-                        }
-                        disabled={departments.length === 0}
-                      >
-                        <SelectTrigger className="w-full bg-white text-sm border-gray-300 focus:border-indigo-400 focus:ring-indigo-400">
-                          <SelectValue
-                            placeholder={
-                              departments.length > 0
-                                ? "Select Department"
-                                : "Loading..."
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent className="absolute z-10 mt-1 w-full border rounded shadow-md bg-white">
-                          {departments.map((dept) => (
-                            <SelectItem key={dept.id} value={dept.id}>
-                              {dept.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </SelectField>
-                    </div>
+        {/* RIGHT COLUMN: FILTERS & CONTENT */}
+        <div className="flex-1 order-1 xl:order-2 flex flex-col gap-6">
+          {/* Filter Bar */}
+          <div className="bg-white/80 p-4 rounded-xl border border-gray-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <SelectField value={filterDept} onValueChange={setFilterDept}>
+              <SelectTrigger>
+                <SelectValue placeholder="Department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Departments</SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={d.name}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </SelectField>
 
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApproveUser(user.id)}
-                        className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2 text-sm flex-1"
+            <SelectField value={filterUser} onValueChange={setFilterUser}>
+              <SelectTrigger>
+                <SelectValue placeholder="User" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Users</SelectItem>
+                {allUsers.map((u) => (
+                  <SelectItem key={u.id} value={u.name}>
+                    {u.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </SelectField>
+
+            <SelectField value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Statuses</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="DELAYED">Delayed</SelectItem>
+              </SelectContent>
+            </SelectField>
+
+            <SelectField
+              value={filterPriority}
+              onValueChange={setFilterPriority}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Priorities</SelectItem>
+                {priorities.map((p) => (
+                  <SelectItem key={p.id} value={p.name}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </SelectField>
+          </div>
+          <div className="grid grid-cols-1 gap-6">
+            {/* Recent Tasks */}
+            <Card className="rounded-xl shadow-lg bg-white/90 backdrop-blur-sm border border-gray-200">
+              <CardHeader className="p-4 md:p-6 border-b border-gray-200">
+                <CardTitle className="text-lg md:text-xl font-semibold text-gray-800">
+                  Recent Tasks
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 md:p-6">
+                <ul className="space-y-4">
+                  {filteredRecentTasks.length > 0 ? (
+                    filteredRecentTasks.map((task) => (
+                      <li
+                        key={task.id}
+                        onClick={() => setSelectedTaskId(task.id)}
+                        className="relative p-4 border border-gray-200 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-indigo-200 transition duration-200 cursor-pointer"
                       >
-                        Accept
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeclineUser(user.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 text-sm flex-1"
+                        {task.priority && (
+                          <div className="absolute top-3 right-3 flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: task.priority.color }}
+                            />
+                            <span className="text-[10px] uppercase font-bold text-gray-600">
+                              {task.priority.name}
+                            </span>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <strong>Title:</strong>{" "}
+                            <span className="font-medium text-gray-800">
+                              {task.title}
+                            </span>
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1 line-clamp-1">
+                            <strong>Desc:</strong> {task.description}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <strong>Assigned To:</strong>{" "}
+                            <span className="font-medium text-gray-800">
+                              {task.assignedTo?.name || "N/A"}
+                            </span>
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            <strong>Deadline:</strong>{" "}
+                            {task.deadline
+                              ? format(new Date(task.deadline), "PPPpp")
+                              : "N/A"}
+                          </p>
+                        </div>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="p-4 text-gray-500 text-center text-sm">
+                      No recent tasks match filters
+                    </li>
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Delayed Tasks */}
+            <Card className="rounded-xl shadow-lg bg-white/90 backdrop-blur-sm border border-gray-200">
+              <CardHeader className="p-4 md:p-6 border-b border-gray-200">
+                <CardTitle className="text-lg md:text-xl font-semibold text-gray-800">
+                  Delayed Tasks
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 md:p-6">
+                <div className="space-y-4">
+                  {filteredDelayedTasks.length > 0 ? (
+                    filteredDelayedTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        onClick={() => setSelectedTaskId(task.id)}
+                        className="relative flex flex-col p-4 border border-red-200 rounded-lg bg-red-50 shadow-sm hover:border-red-300 hover:shadow-md transition duration-200 cursor-pointer"
                       >
-                        Decline
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center text-sm">
-                  No pending user requests.
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card> */}
+                        {task.priority && (
+                          <div className="absolute top-3 right-3 flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: task.priority.color }}
+                            />
+                            <span className="text-[10px] uppercase font-bold text-gray-600">
+                              {task.priority.name}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-700 text-base">
+                            {task.title}
+                          </p>
+                          <p className="text-sm text-red-500 mt-1">
+                            Overdue since:{" "}
+                            {task.deadline
+                              ? format(new Date(task.deadline), "PPPpp")
+                              : "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-center text-sm">
+                      No delayed tasks match filters.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Task Lists */}
       </div>
 
       {/* Create Task Modal */}
@@ -697,212 +606,142 @@ const DashboardPage = () => {
             <h2 className="text-2xl font-semibold mb-6 text-gray-900 text-center">
               Create New Task
             </h2>
-
             {isModalDataLoading ? (
               <div className="text-center py-8">
-                <p className="text-gray-600">Loading data for dropdowns...</p>
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-500 mx-auto mt-4"></div>
+                <p className="text-gray-600">Loading data...</p>
               </div>
             ) : modalFetchError ? (
               <div className="text-center py-8">
                 <p className="text-red-600">{modalFetchError}</p>
-                <Button
-                  onClick={() => setIsModalOpen(false)}
-                  className="mt-4 bg-gray-800 text-white hover:bg-gradient-to-r hover:from-blue-600 hover:to-indigo-600 transition rounded-lg px-4 py-2 text-sm"
-                >
-                  Close
-                </Button>
+                <Button onClick={() => setIsModalOpen(false)}>Close</Button>
               </div>
             ) : (
               <form onSubmit={handleCreateTask} className="space-y-5">
                 <div>
-                  <label
-                    htmlFor="title"
-                    className="block mb-2 font-medium text-gray-700"
-                  >
+                  <label className="block mb-2 font-medium text-gray-700">
                     Title
                   </label>
                   <Input
-                    id="title"
-                    type="text"
-                    className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-400 focus:ring-indigo-400"
+                    className="bg-white"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     required
                   />
                 </div>
-
                 <div>
-                  <label
-                    htmlFor="description"
-                    className="block mb-2 font-medium text-gray-700"
-                  >
+                  <label className="block mb-2 font-medium text-gray-700">
                     Description
                   </label>
                   <Textarea
-                    id="description"
-                    className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-400 focus:ring-indigo-400"
+                    className="bg-white"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     required
                   />
                 </div>
-
                 <div className="gap-2">
-                  {/* Priority */}
-                  <div className="">
-                    <label className="block mb-2 font-medium text-gray-700">
-                      Priority
-                    </label>
-
-                    <div className="flex flex-wrap gap-2">
-                      {priorities.map((p) => (
-                        <label
-                          key={p.id}
-                          className={`flex text-xs items-center gap-2 px-2 py-2 rounded-lg border cursor-pointer transition
-                              ${selectedPriorityId === p.id
-                              ? "border-indigo-500 bg-indigo-50"
-                              : "border-gray-300 bg-white hover:border-gray-400"
-                            }`}
-                        >
-                          <input
-                            type="radio"
-                            name="priority"
-                            value={p.id}
-                            checked={selectedPriorityId === p.id}
-                            onChange={() => setSelectedPriorityId(p.id)}
-                            className="accent-indigo-600"
-                          />
-
-                          <span
-                            className="h-3 w-3 rounded-full"
-                            style={{ backgroundColor: p.color }}
-                          />
-
-                          <span className="text-xs text-gray-700">
-                            {p.name}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Deadline */}
-                  <div className="w-44">
-                    <label
-                      htmlFor="deadline"
-                      className="block mb-2 font-medium text-gray-700"
-                    >
-                      Deadline
-                    </label>
-                    <Input
-                      id="deadline"
-                      type="datetime-local"
-                      className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-400 focus:ring-indigo-400"
-                      value={deadline}
-                      onChange={(e) => setDeadline(e.target.value)}
-                      required
-                    />
+                  <label className="block mb-2 font-medium text-gray-700">
+                    Priority
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {priorities.map((p) => (
+                      <label
+                        key={p.id}
+                        className={`flex text-xs items-center gap-2 px-2 py-2 rounded-lg border cursor-pointer ${selectedPriorityId === p.id ? "border-indigo-500 bg-indigo-50" : "border-gray-300 bg-white"}`}
+                      >
+                        <input
+                          type="radio"
+                          name="priority"
+                          value={p.id}
+                          checked={selectedPriorityId === p.id}
+                          onChange={() => setSelectedPriorityId(p.id)}
+                          className="accent-indigo-600"
+                        />
+                        <span
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: p.color }}
+                        />
+                        <span className="text-xs text-gray-700">{p.name}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
-
+                <div className="w-full">
+                  <label className="block mb-2 font-medium text-gray-700">
+                    Deadline
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    className="bg-white"
+                    value={deadline}
+                    onChange={(e) => setDeadline(e.target.value)}
+                    required
+                  />
+                </div>
                 <div>
-                  <label
-                    htmlFor="department"
-                    className="block mb-2 font-medium text-gray-700"
-                  >
+                  <label className="block mb-2 font-medium text-gray-700">
                     Department
                   </label>
                   <SelectField
-                    value={selectedDeptId || ""}
-                    onValueChange={(value: string) => setSelectedDeptId(value)}
-                    required
-                    disabled={departments.length === 0}
+                    value={selectedDeptId}
+                    onValueChange={setSelectedDeptId}
                   >
-                    <SelectTrigger className="w-full bg-white text-sm border-gray-300 focus:border-indigo-400 focus:ring-indigo-400">
-                      <SelectValue
-                        placeholder={
-                          departments.length > 0
-                            ? "Select a department"
-                            : "No departments available"
-                        }
-                      />
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Select Department" />
                     </SelectTrigger>
-                    <SelectContent className="absolute z-10 mt-1 w-full border rounded shadow-md bg-white">
-                      {departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>
-                          {dept.name}
+                    <SelectContent>
+                      {departments.map((dep) => (
+                        <SelectItem key={dep.id} value={dep.id}>
+                          {dep.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </SelectField>
                 </div>
-
                 <div>
-                  <label
-                    htmlFor="assignToUser"
-                    className="block mb-2 font-medium text-gray-700"
-                  >
-                    Assign To User
+                  <label className="block mb-2 font-medium text-gray-700">
+                    Assign To
                   </label>
                   <SelectField
                     value={selectedUser}
-                    onValueChange={(value: string) => setSelectedUser(value)}
-                    required
-                    disabled={!selectedDeptId || filteredUsers.length === 0}
+                    onValueChange={setSelectedUser}
+                    disabled={!selectedDeptId}
                   >
-                    <SelectTrigger className="w-full bg-white text-sm border-gray-300 focus:border-indigo-400 focus:ring-indigo-400">
-                      <SelectValue
-                        placeholder={
-                          !selectedDeptId
-                            ? "Select department first"
-                            : filteredUsers.length > 0
-                              ? "Select a user"
-                              : "No users in this department"
-                        }
-                      />
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Select User" />
                     </SelectTrigger>
-                    <SelectContent className="absolute z-10 mt-1 w-full border rounded shadow-md bg-white">
-                      {filteredUsers.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.name}
-                        </SelectItem>
-                      ))}
+                    <SelectContent>
+                      {allUsers
+                        .filter(
+                          (u) =>
+                            u.departmentId === selectedDeptId && u.approved,
+                        )
+                        .map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </SelectField>
                 </div>
 
-                {error && (
-                  <p className="text-red-600 text-sm text-center">{error}</p>
-                )}
-                {success && (
-                  <p className="text-green-600 text-sm text-center">
-                    {success}
-                  </p>
-                )}
-
-                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 rounded-lg border-2 border-gray-300 hover:border-red-400 hover:border-2 hover:text-red-400 text-gray-700 
-                                transition-all duration-200 shadow-sm hover:shadow-md 
-                                text-sm w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-blue-500 text-white border-none hover:border-blue-400 hover:bg-blue-600 
-                                rounded-lg 
-                                px-4 py-2 text-sm w-full sm:w-auto 
-                                transition-all duration-200 hover:shadow-md"
-                    disabled={isModalDataLoading}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
                   >
                     Create Task
                   </Button>
                 </div>
+                {error && <p className="text-red-600 text-sm">{error}</p>}
+                {success && <p className="text-green-600 text-sm">{success}</p>}
               </form>
             )}
           </div>
@@ -912,16 +751,16 @@ const DashboardPage = () => {
       {/* Task Detail Modal */}
       {selectedTaskId && (
         <div
-          className="fixed inset-0 flex items-center justify-center z-50 bg-transparent"
+          className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-sm"
           onClick={() => setSelectedTaskId(null)}
         >
           <div
-            className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl h-[90vh] overflow-y-auto relative"
+            className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl h-[90vh] overflow-y-auto relative animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setSelectedTaskId(null)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-red-600 text-lg font-semibold"
+              className="absolute top-3 right-3 text-gray-500 hover:text-red-600 text-lg font-semibold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
             >
               ✕
             </button>
