@@ -1,0 +1,11 @@
+version: "2"
+authtoken: 38pmHHKrVYYaoZHQkndR5JCSQwq_j2biczhkaQ1KfBqYeQG3
+tunnels:
+  frontend:
+    addr: 3000
+    proto: http
+    host_header: rewrite
+  backend:
+    addr: 5000
+    proto: http
+    host_header: rewrite

@@ -17,6 +17,7 @@ interface Task {
   priority: { code: string; name: string; color: string };
   assignedBy?: { id: string; name: string };
   assignedTo?: { id: string; name: string };
+  createdAt: string;
 }
 
 export default function EmployeeDashboard() {
@@ -94,14 +95,16 @@ export default function EmployeeDashboard() {
   // Calculate KPIs
   const totalTasks = tasks.length;
   // Active tasks for display
-  const activeTasks = tasks.filter(
-    (t) =>
-      t.status === TASK_STATUS_CONFIG.PENDING.label ||
-      t.status === TASK_STATUS_CONFIG.ACTIVE.label,
-  );
-  const delayedTasks = tasks.filter(
-    (t) => t.status === TASK_STATUS_CONFIG.DELAYED.label,
-  );
+  const activeTasks = tasks
+    .filter(
+      (t) =>
+        t.status === TASK_STATUS_CONFIG.PENDING.label ||
+        t.status === TASK_STATUS_CONFIG.ACTIVE.label,
+    )
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const delayedTasks = tasks
+    .filter((t) => t.status === TASK_STATUS_CONFIG.DELAYED.label)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const completedTasks = tasks.filter(
     (t) => t.status === TASK_STATUS_CONFIG.COMPLETED.label,
   );
