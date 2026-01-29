@@ -167,8 +167,8 @@ export default function AdminTasksPage() {
           selectedDepartment === "All"
             ? `${API_BASE_URL}/api/users`
             : `${API_BASE_URL}/api/users?department=${encodeURIComponent(
-              selectedDepartment,
-            )}`;
+                selectedDepartment,
+              )}`;
 
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
@@ -296,7 +296,7 @@ export default function AdminTasksPage() {
       )}
 
       {/* Filters */}
-      <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-4">
+      <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <div className="flex flex-col">
           <label
             htmlFor="department"
