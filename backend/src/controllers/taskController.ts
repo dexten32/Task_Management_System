@@ -200,27 +200,48 @@ export const getMyTasks = async (req: Request, res: Response) => {
 
 export const getDelayedTasks = async (req: Request, res: Response) => {
   try {
-    const now = new Date();
+    const adminId = req.user?.id;
+    if (!adminId) {
+      return res.status(400).json({ error: "Missing adminId" });
+    }
+    const limit = Math.min(
+      req.query.limit ? parseInt(req.query.limit as string, 10) : 3,
+      3,
+    );
+    const assignedToId = req.query.userId as string | undefined;
+    const departmentId = req.query.departmentId as string | undefined;
     const tasks = await prisma.task.findMany({
       where: {
-        status: TaskStatus.ACTIVE,
-        deadline: {
-          lt: new Date(),
+        assignedById: adminId,
+        deadline: { lt: new Date() },
+        status: {
+          in: [TaskStatus.ACTIVE, TaskStatus.DELAYED],
         },
+        ...(assignedToId && { assignedToId }),
+        ...(departmentId &&
+          !assignedToId && {
+          assignedTo: {
+            departmentId,
+          },
+        }),
+      },
+      take: limit,
+      orderBy: {
+        deadline: "asc",
       },
       include: {
         priority: {
           select: { code: true, name: true, color: true },
         },
         assignedTo: {
-          select: { name: true, id: true },
+          select: {
+            name: true,
+            id: true,
+          },
         },
         assignedBy: {
           select: { name: true, id: true },
         },
-      },
-      orderBy: {
-        deadline: "asc",
       },
     });
     res.status(200).json({ tasks });
@@ -274,12 +295,54 @@ export const getPreviousTasks = async (req: Request, res: Response) => {
 
 export const getTaskLimit = async (req: Request, res: Response) => {
   const adminId = req.user?.id;
-  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 3;
+  const limit = Math.min(
+    req.query.limit ? parseInt(req.query.limit as string, 10) : 3,
+    3,
+  );
+  const assignedToId = req.query.userId as string | undefined;
+  const departmentId = req.query.departmentId as string | undefined;
+
   if (!adminId) {
     return res.status(400).json({ error: "Missing adminId" });
   }
-  const tasks = await getRecentTasksByAdmin(adminId, limit);
-  res.json(tasks);
+  const tasks = await prisma.task.findMany({
+    where: {
+      assignedById: adminId,
+      ...(assignedToId && { assignedToId }),
+      ...(departmentId &&
+        !assignedToId && {
+        assignedTo: {
+          departmentId,
+        },
+      }),
+    },
+    take: limit,
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      priority: {
+        select: {
+          code: true,
+          name: true,
+          color: true,
+        },
+      },
+      assignedTo: {
+        select: {
+          id: true,
+          name: true,
+          department: {
+            select: { id: true, name: true },
+          },
+        },
+      },
+      assignedBy: {
+        select: { id: true },
+      },
+    },
+  });
+  res.json({ tasks });
 };
 
 export const getTaskById = async (

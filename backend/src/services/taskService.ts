@@ -8,15 +8,28 @@ export interface TaskInput {
   assignedTo: string;
   assignedBy: string;
   priorityId: number;
+  departmentId: string;
 }
 
 // No longer used,  The logic is moved to the controller.
-export const getRecentTasksByAdmin = async (adminId: string, limit: number) => {
-  return prisma.task.findMany({
+export const getRecentTasksByAdmin = async (
+  adminId: string,
+  limit: number,
+  departmentId: string,
+  assignedToId?: string,
+) => {
+  return await prisma.task.findMany({
     where: {
       assignedById: adminId,
+      ...(assignedToId && { assignedToId }),
+      ...(departmentId &&
+        !departmentId && {
+          assignedTo: {
+            departmentId,
+          },
+        }),
     },
-    take: 3,
+    take: limit,
     orderBy: {
       createdAt: "desc",
     },
@@ -30,11 +43,15 @@ export const getRecentTasksByAdmin = async (adminId: string, limit: number) => {
       },
       assignedTo: {
         select: {
+          id: true,
           name: true,
+          department: {
+            select: { id: true, name: true },
+          },
         },
       },
       assignedBy: {
-        select: { name: true },
+        select: { id: true },
       },
     },
   });

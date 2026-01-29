@@ -88,8 +88,6 @@ const DashboardPage = () => {
   // Filters State
   const [filterDept, setFilterDept] = useState<string>("All");
   const [filterUser, setFilterUser] = useState<string>("All");
-  const [filterStatus, setFilterStatus] = useState<string>("All");
-  const [filterPriority, setFilterPriority] = useState<string>("All");
 
   useEffect(() => {
     const fetchUsersAndDepartments = async () => {
@@ -140,41 +138,65 @@ const DashboardPage = () => {
     fetchUsersAndDepartments();
   }, []);
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (filterUser: string, filterDept: string) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication token not found.");
-      // Using recentlimit for dashboard
-      const res = await fetch(`${API_BASE_URL}/api/tasks/recentlimit`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const query = new URLSearchParams();
+      query.set("limit", "3");
+      if (filterUser !== "All") {
+        query.set("userId", filterUser);
+      } else if (filterDept !== "All") {
+        query.set("departmentId", filterDept);
+      }
+      const res = await fetch(
+        `${API_BASE_URL}/api/tasks/recentlimit?${query.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) throw new Error("Failed to fetch recent tasks");
       const data = await res.json();
-      setRecentTasks(data || []);
+      setRecentTasks(Array.isArray(data) ? data : (data.tasks ?? []));
     } catch (err: unknown) {
       console.error("Failed to fetch recent tasks", err);
     }
   };
 
-  const fetchBackendDelayedTasks = async () => {
+  const fetchBackendDelayedTasks = async (
+    filterUser: string,
+    filterDept: string,
+  ) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication token not found.");
-      const res = await fetch(`${API_BASE_URL}/api/tasks/delayed`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const query = new URLSearchParams();
+      query.set("limit", "3");
+      if (filterUser !== "All") {
+        query.set("userId", filterUser);
+      } else if (filterDept !== "All") {
+        query.set("DepartmentId", filterDept);
+      }
+      const res = await fetch(
+        `${API_BASE_URL}/api/tasks/delayed?${query.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) throw new Error("Failed to fetch delayed tasks");
-      const data = await res.json();
-      setBackendDelayedTasks(data.tasks || []);
+      const backendData = await res.json();
+      setBackendDelayedTasks(
+        Array.isArray(backendData) ? backendData : (backendData.tasks ?? []),
+      );
     } catch (err: unknown) {
       console.error("Failed to fetch delayed tasks", err);
     }
   };
 
   useEffect(() => {
-    fetchTasks();
-    fetchBackendDelayedTasks();
-  }, []);
+    fetchTasks(filterUser, filterDept);
+    fetchBackendDelayedTasks(filterUser, filterDept);
+  }, [filterUser, filterDept]);
 
   useEffect(() => {
     setSelectedUser("");
@@ -188,30 +210,31 @@ const DashboardPage = () => {
   // --- FILTERING LOGIC ---
   const applyFilters = (tasks: Task[]) => {
     return tasks.filter((task) => {
-      // Since the task object structure from these endpoints might differ slightly, handle gracefully
-      const taskDeptName =
-        allUsers.find((u) => u.id === task.assignedTo?.id)?.departmentName ||
-        "N/A"; // Best effort mapping if dept not on task
+      // Resolve Task Department ID
+      let taskDeptId = task.departmentId;
 
-      const matchesDept =
-        filterDept === "All" ||
-        task.department === filterDept ||
-        taskDeptName === filterDept; // Check both if available
+      if (!taskDeptId && task.assignedTo?.id) {
+        const assignedUser = allUsers.find((u) => u.id === task.assignedTo!.id);
+        if (assignedUser?.departmentId) {
+          taskDeptId = assignedUser.departmentId;
+        }
+      }
+
+      // Fallback: Check for nested department object from API
+      if (!taskDeptId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawTask = task as any;
+        if (rawTask.assignedTo?.department?.id) {
+          taskDeptId = rawTask.assignedTo.department.id;
+        }
+      }
+
+      const matchesDept = filterDept === "All" || taskDeptId === filterDept;
 
       const matchesUser =
-        filterUser === "All" || task.assignedTo?.name === filterUser;
+        filterUser === "All" || task.assignedTo?.id === filterUser;
 
-      const matchesPriority =
-        filterPriority === "All" || task.priority?.name === filterPriority;
-
-      const matchesStatus =
-        filterStatus === "All" ||
-        task.status === filterStatus ||
-        (filterStatus === "DELAYED" &&
-          new Date(task.deadline) < new Date() &&
-          task.status !== "COMPLETED"); // Basic check if status field missing
-
-      return matchesDept && matchesUser && matchesPriority && matchesStatus;
+      return matchesDept && matchesUser;
     });
   };
 
@@ -219,9 +242,7 @@ const DashboardPage = () => {
   const filteredDelayedTasks = applyFilters(backendDelayedTasks);
   const totalVisibleTasks =
     filteredRecentTasks.length + filteredDelayedTasks.length;
-  const activeCount = filteredRecentTasks.filter(
-    (t) => t.status === "ACTIVE",
-  ).length;
+  const recentCount = filteredRecentTasks.length;
   const delayedCount =
     filteredDelayedTasks.length +
     filteredRecentTasks.filter((t) => t.status === "DELAYED").length;
@@ -231,7 +252,7 @@ const DashboardPage = () => {
 
   // Pie Chart Data
   const chartData = [
-    { label: "Active", value: activeCount, color: "#6366f1" }, // indigo-500
+    { label: "Active", value: recentCount, color: "#6366f1" }, // indigo-500
     { label: "Completed", value: completedCount, color: "#10b981" }, // emerald-500
     { label: "Delayed", value: delayedCount, color: "#f59e0b" }, // amber-500
   ].filter((d) => d.value > 0);
@@ -290,7 +311,7 @@ const DashboardPage = () => {
         setSelectedDeptId("");
         setSelectedPriorityId(null);
         setTimeout(() => setIsModalOpen(false), 1500);
-        fetchTasks();
+        fetchTasks(filterUser, filterDept);
       } else {
         const data = await response.json();
         setError(data.message || "Failed to create task");
@@ -338,7 +359,7 @@ const DashboardPage = () => {
                     Active
                   </p>
                   <p className="text-xl font-bold text-indigo-800">
-                    {activeCount}
+                    {recentCount}
                   </p>
                 </CardContent>
               </Card>
@@ -362,47 +383,50 @@ const DashboardPage = () => {
                 Analytics
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center pb-6">
-              {totalChartValue === 0 ? (
-                <div className="h-32 w-32 rounded-full border-4 border-gray-100 flex items-center justify-center text-xs text-gray-400">
-                  No Data
-                </div>
-              ) : (
-                <div className="relative h-32 w-32">
-                  <svg
-                    viewBox="-1 -1 2 2"
-                    style={{ transform: "rotate(-90deg)" }}
-                    className="w-full h-full"
-                  >
-                    {chartData.map((slice, i) => {
-                      const start = cumulativePercent;
-                      const end = start + slice.value / totalChartValue;
-                      cumulativePercent = end;
-                      const [startX, startY] = getCoordinatesForPercent(start);
-                      const [endX, endY] = getCoordinatesForPercent(end);
-                      const largeArcFlag =
-                        slice.value / totalChartValue > 0.5 ? 1 : 0;
-                      if (slice.value === totalChartValue)
+            <CardContent className="flex flex-col pb-6">
+              <div className="flex justify-center items-center">
+                {totalChartValue === 0 ? (
+                  <div className="h-40 w-40 rounded-full border-4 border-gray-100 flex items-center justify-center text-xs text-gray-400">
+                    No Data
+                  </div>
+                ) : (
+                  <div className="relative h-32 w-32">
+                    <svg
+                      viewBox="-1 -1 2 2"
+                      style={{ transform: "rotate(-90deg)" }}
+                      className="w-full h-full"
+                    >
+                      {chartData.map((slice, i) => {
+                        const start = cumulativePercent;
+                        const end = start + slice.value / totalChartValue;
+                        cumulativePercent = end;
+                        const [startX, startY] =
+                          getCoordinatesForPercent(start);
+                        const [endX, endY] = getCoordinatesForPercent(end);
+                        const largeArcFlag =
+                          slice.value / totalChartValue > 0.5 ? 1 : 0;
+                        if (slice.value === totalChartValue)
+                          return (
+                            <circle
+                              key={i}
+                              cx="0"
+                              cy="0"
+                              r="1"
+                              fill={slice.color}
+                            />
+                          );
                         return (
-                          <circle
+                          <path
                             key={i}
-                            cx="0"
-                            cy="0"
-                            r="1"
+                            d={`M 0 0 L ${startX} ${startY} A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY} Z`}
                             fill={slice.color}
                           />
                         );
-                      return (
-                        <path
-                          key={i}
-                          d={`M 0 0 L ${startX} ${startY} A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY} Z`}
-                          fill={slice.color}
-                        />
-                      );
-                    })}
-                  </svg>
-                </div>
-              )}
+                      })}
+                    </svg>
+                  </div>
+                )}
+              </div>
 
               {/* Legend */}
               <div className="mt-6 flex flex-wrap justify-center gap-x-4 gap-y-2">
@@ -433,7 +457,7 @@ const DashboardPage = () => {
               <SelectContent>
                 <SelectItem value="All">All Departments</SelectItem>
                 {departments.map((d) => (
-                  <SelectItem key={d.id} value={d.name}>
+                  <SelectItem key={d.id} value={d.id}>
                     {d.name}
                   </SelectItem>
                 ))}
@@ -446,38 +470,12 @@ const DashboardPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Users</SelectItem>
-                {allUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.name}>
+                {(filterDept === "All"
+                  ? allUsers
+                  : allUsers.filter((u) => u.departmentId === filterDept)
+                ).map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
                     {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </SelectField>
-
-            <SelectField value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Statuses</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="DELAYED">Delayed</SelectItem>
-              </SelectContent>
-            </SelectField>
-
-            <SelectField
-              value={filterPriority}
-              onValueChange={setFilterPriority}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Priorities</SelectItem>
-                {priorities.map((p) => (
-                  <SelectItem key={p.id} value={p.name}>
-                    {p.name}
                   </SelectItem>
                 ))}
               </SelectContent>
