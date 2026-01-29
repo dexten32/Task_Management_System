@@ -5,6 +5,7 @@ export interface TaskInput {
   title: string;
   description: string;
   deadline: Date;
+  status: TaskStatus;
   assignedTo: string;
   assignedBy: string;
   priorityId: number;

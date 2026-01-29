@@ -1,6 +1,14 @@
 "use client";
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { Menu, User, CircleCheck, ListCheck, LogOut, X } from "lucide-react";
+import {
+  Menu,
+  User,
+  CircleCheck,
+  ListCheck,
+  LogOut,
+  X,
+  Home,
+} from "lucide-react";
 import { SidebarLink } from "@/components/sidebarLinkComponent";
 import API_BASE_URL from "@/lib/api";
 
@@ -106,7 +114,7 @@ export default function EmployeeLayout({ children }: { children: ReactNode }) {
         <nav className="mt-8">
           <SidebarLink
             href="/employee/dashboard"
-            icon={<CircleCheck />}
+            icon={<Home />}
             label="Dashboard"
             sidebarOpen={true}
           />

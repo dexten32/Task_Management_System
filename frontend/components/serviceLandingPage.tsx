@@ -2,6 +2,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -132,7 +133,13 @@ export default function ServiceCompanyLanding() {
                 <div className="relative mb-2">
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl blur-md opacity-70 animate-pulse"></div>
                   <div className="relative bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-4 rounded-2xl shadow-lg">
-                    <Shield className="h-10 w-10 text-white" />
+                    <Image
+                      src="/cynox_logo.svg"
+                      alt="Cynox Logo"
+                      width={40}
+                      height={40}
+                      className="h-10 w-10 text-white"
+                    />
                   </div>
                 </div>
                 <div>
@@ -146,12 +153,17 @@ export default function ServiceCompanyLanding() {
               </div>
 
               {/* Desktop Branding */}
-              <div className="hidden md:block">
-                <div className="flex items-center space-x-4 mb-6 justify-center md:justify-start group cursor-pointer">
+              <div className="hidden md:block select-none">
+                <div className="flex items-center space-x-2 mb-2 justify-center md:justify-start group">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl blur-md group-hover:blur-lg transition-all duration-300 opacity-70"></div>
-                    <div className="relative bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-4 rounded-2xl shadow-lg transform group-hover:scale-110 transition-all duration-300">
-                      <Shield className="h-10 w-10 text-white" />
+                    <div className="relative rounded-2xl transform hover:scale-110 transition-all duration-300">
+                      <Image
+                        src="/cynox_logo.svg"
+                        alt="Cynox Logo"
+                        width={1}
+                        height={1}
+                        className="h-40 w-40 text-white"
+                      />
                     </div>
                   </div>
                   <div>
@@ -234,10 +246,11 @@ export default function ServiceCompanyLanding() {
                           </label>
                           <div className="relative group">
                             <User
-                              className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${focusedField === "name"
-                                ? "text-blue-600 scale-110"
-                                : "text-gray-400"
-                                }`}
+                              className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${
+                                focusedField === "name"
+                                  ? "text-blue-600 scale-110"
+                                  : "text-gray-400"
+                              }`}
                             />
                             <Input
                               id="name"
@@ -263,10 +276,11 @@ export default function ServiceCompanyLanding() {
                         </label>
                         <div className="relative group">
                           <Mail
-                            className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${focusedField === "email"
-                              ? "text-blue-600 scale-110"
-                              : "text-gray-400"
-                              }`}
+                            className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${
+                              focusedField === "email"
+                                ? "text-blue-600 scale-110"
+                                : "text-gray-400"
+                            }`}
                           />
                           <Input
                             id="email"
@@ -291,10 +305,11 @@ export default function ServiceCompanyLanding() {
                         </label>
                         <div className="relative group">
                           <Lock
-                            className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${focusedField === "password"
-                              ? "text-blue-600 scale-110"
-                              : "text-gray-400"
-                              }`}
+                            className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${
+                              focusedField === "password"
+                                ? "text-blue-600 scale-110"
+                                : "text-gray-400"
+                            }`}
                           />
                           <Input
                             id="password"
@@ -332,10 +347,11 @@ export default function ServiceCompanyLanding() {
                           </label>
                           <div className="relative group">
                             <Lock
-                              className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${focusedField === "confirmPassword"
-                                ? "text-blue-600 scale-110"
-                                : "text-gray-400"
-                                }`}
+                              className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${
+                                focusedField === "confirmPassword"
+                                  ? "text-blue-600 scale-110"
+                                  : "text-gray-400"
+                              }`}
                             />
                             <Input
                               id="confirmPassword"
