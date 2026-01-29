@@ -130,15 +130,14 @@ export default function ServiceCompanyLanding() {
             <div className="flex-1 text-center md:text-left mb-0 md:mb-0 flex-shrink-0">
               {/* Mobile Logo */}
               <div className="md:hidden flex flex-col items-center justify-center min-h-[18vh]">
-                <div className="relative mb-2">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl blur-md opacity-70 animate-pulse"></div>
-                  <div className="relative bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-4 rounded-2xl shadow-lg">
+                <div className="relative">
+                  <div className="relative rounded-2xl">
                     <Image
                       src="/cynox_logo.svg"
                       alt="Cynox Logo"
-                      width={40}
-                      height={40}
-                      className="h-10 w-10 text-white"
+                      width={1}
+                      height={1}
+                      className="h-30 w-30 text-white"
                     />
                   </div>
                 </div>
