@@ -260,12 +260,6 @@ const DashboardPage = () => {
   const totalChartValue = chartData.reduce((acc, curr) => acc + curr.value, 0);
   let cumulativePercent = 0;
 
-  const getCoordinatesForPercent = (percent: number) => {
-    const x = Math.cos(2 * Math.PI * percent);
-    const y = Math.sin(2 * Math.PI * percent);
-    return [x, y];
-  };
-
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -322,15 +316,15 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-50 text-gray-900 p-4 md:p-6 lg:p-8 font-sans">
-      <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-50 text-gray-900 p-4 md:p-6 lg:p-8 font-sans select-none">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
           Dashboard
         </h1>
         <Button
           size="sm"
           onClick={() => setIsModalOpen(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md rounded-lg px-4 py-2 text-sm"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md rounded-lg px-4 py-2 text-sm w-full sm:w-auto"
         >
           + Create New Task
         </Button>
@@ -341,7 +335,8 @@ const DashboardPage = () => {
         {/* LEFT COLUMN: ANALYTICS & SIDEBAR */}
         <div className="w-full xl:w-80 flex flex-col gap-6 shrink-0 order-2 xl:order-1">
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 xl:grid-cols-1 gap-4">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-4">
             <Card className="bg-white/80 backdrop-blur-sm border-indigo-100 shadow-sm">
               <CardContent className="p-4 flex flex-col items-center justify-center">
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
@@ -352,28 +347,26 @@ const DashboardPage = () => {
                 </p>
               </CardContent>
             </Card>
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-indigo-50 border-indigo-100 shadow-sm">
-                <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                  <p className="text-[10px] text-indigo-600 font-bold uppercase">
-                    Active
-                  </p>
-                  <p className="text-xl font-bold text-indigo-800">
-                    {recentCount}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-amber-50 border-amber-100 shadow-sm">
-                <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                  <p className="text-[10px] text-amber-600 font-bold uppercase">
-                    Delayed
-                  </p>
-                  <p className="text-xl font-bold text-amber-800">
-                    {delayedCount}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="bg-indigo-50 border-indigo-100 shadow-sm">
+              <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+                <p className="text-[10px] text-indigo-600 font-bold uppercase">
+                  Active
+                </p>
+                <p className="text-xl font-bold text-indigo-800">
+                  {recentCount}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-amber-50 border-amber-100 shadow-sm">
+              <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+                <p className="text-[10px] text-amber-600 font-bold uppercase">
+                  Delayed
+                </p>
+                <p className="text-xl font-bold text-amber-800">
+                  {delayedCount}
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Donut Chart */}
@@ -390,40 +383,47 @@ const DashboardPage = () => {
                     No Data
                   </div>
                 ) : (
-                  <div className="relative h-32 w-32">
+                  <div className="relative w-48 h-48">
                     <svg
-                      viewBox="-1 -1 2 2"
-                      style={{ transform: "rotate(-90deg)" }}
-                      className="w-full h-full"
+                      viewBox="0 0 120 120"
+                      className="w-full h-full transform -rotate-90"
                     >
                       {chartData.map((slice, i) => {
-                        const start = cumulativePercent;
-                        const end = start + slice.value / totalChartValue;
-                        cumulativePercent = end;
-                        const [startX, startY] =
-                          getCoordinatesForPercent(start);
-                        const [endX, endY] = getCoordinatesForPercent(end);
-                        const largeArcFlag =
-                          slice.value / totalChartValue > 0.5 ? 1 : 0;
-                        if (slice.value === totalChartValue)
-                          return (
-                            <circle
-                              key={i}
-                              cx="0"
-                              cy="0"
-                              r="1"
-                              fill={slice.color}
-                            />
-                          );
+                        const percent = slice.value / totalChartValue;
+                        const radius = 50;
+                        const circumference = 2 * Math.PI * radius;
+                        const strokeDasharray = `${
+                          percent * circumference
+                        } ${circumference}`;
+                        const strokeDashoffset =
+                          -cumulativePercent * circumference;
+                        cumulativePercent += percent;
+
                         return (
-                          <path
+                          <circle
                             key={i}
-                            d={`M 0 0 L ${startX} ${startY} A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY} Z`}
-                            fill={slice.color}
+                            cx="60"
+                            cy="60"
+                            r={radius}
+                            fill="transparent"
+                            stroke={slice.color}
+                            strokeWidth="12"
+                            strokeDasharray={strokeDasharray}
+                            strokeDashoffset={strokeDashoffset}
+                            strokeLinecap="butt"
+                            className="transition-all duration-1000 ease-out"
                           />
                         );
                       })}
                     </svg>
+                    <div className="absolute inset-0 flex items-center justify-center flex-col">
+                      <span className="text-3xl font-bold text-gray-800">
+                        {totalChartValue}
+                      </span>
+                      <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+                        Total
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -738,8 +738,16 @@ const DashboardPage = () => {
                     Create Task
                   </Button>
                 </div>
-                {error && <p className="text-red-600 text-sm">{error}</p>}
-                {success && <p className="text-green-600 text-sm">{success}</p>}
+                {error && (
+                  <p className="text-red-600 text-sm flex items-center justify-center">
+                    {error}
+                  </p>
+                )}
+                {success && (
+                  <p className="flex items-center justify-center text-green-600 text-sm">
+                    {success}
+                  </p>
+                )}
               </form>
             )}
           </div>

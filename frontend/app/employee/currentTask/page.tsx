@@ -209,10 +209,6 @@ export default function CurrentTasksSection() {
           <label className="block text-sm font-medium text-gray-600 mb-1">
             Priority
           </label>
-
-
-          // ... existing code ...
-
           <div className="flex flex-col">
             <label className="block text-sm font-medium text-gray-600 mb-1">
               Priority
@@ -239,20 +235,7 @@ export default function CurrentTasksSection() {
                                 ? "#f59e0b" // amber
                                 : priority.name === "Low"
                                   ? "#10b981" // emerald
-                                  : "#6b7280", // gray (default) - actually we can probably use priority.color if available in this scope?
-                          // Wait, 'priorities' state in 'currentTask/page.tsx' likely doesn't have the 'color' property in the state definition locally?
-                          // Let's check the state definition in 'currentTask/page.tsx'
-                          // `const [priorities, setPriorities] = useState<{ id: number; name: string }[]>([]);`
-                          // Ah, the state definition is limited. The API probably returns color.
-                          // I should update the state definition to include color or just rely on name mapping. 
-                          // The backend response `data.priorities` usually has it.
-                          // Let's assume for now I can map generic colors or updated state later.
-                          // ACTUALLY, in the Task list rendering, it DOES use `task.priority.color`.
-                          // The fetching of priorities (lines 146-168) converts `data.priorities`.
-                          // Let's update the type definition in strict TS if needed, but for now I'll use a safer mapping
-                          // OR just Render the name.
-                          // I'll try to use the color if available, but I need to update the state type.
-                          // To be safe I will use a simple mapping based on name for the filter dropdown to ensure it looks good immediately.
+                                  : "#6b7280",
                         }}
                       />
                       {priority.name}

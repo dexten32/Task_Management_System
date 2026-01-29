@@ -5,6 +5,13 @@ import API_BASE_URL from "@/lib/api";
 import ClientTaskDetail from "@/components/ClientTaskDetail";
 import React, { useEffect, useState } from "react";
 import { TaskStatus, TASK_STATUS_CONFIG } from "@/lib/taskStatus";
+import {
+  SelectField,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Task {
   priority: { code: string; name: string; color: string };
@@ -160,8 +167,8 @@ export default function AdminTasksPage() {
           selectedDepartment === "All"
             ? `${API_BASE_URL}/api/users`
             : `${API_BASE_URL}/api/users?department=${encodeURIComponent(
-              selectedDepartment,
-            )}`;
+                selectedDepartment,
+              )}`;
 
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
@@ -290,89 +297,114 @@ export default function AdminTasksPage() {
       )}
 
       {/* Filters */}
-      <div className="mb-10 flex flex-wrap gap-6">
+      <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-4">
         <div className="flex flex-col">
           <label
             htmlFor="department"
-            className="block text-sm text-gray-600 mb-2"
+            className="block text-sm font-medium text-gray-600 mb-1"
           >
             Filter by Department
           </label>
           {loadingDepartments ? (
-            <p className="text-gray-500">Loading departments...</p>
+            <p className="text-sm text-gray-500">Loading...</p>
           ) : (
-            <select
-              id="department"
+            <SelectField
               value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="bg-white text-gray-800 p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+              onValueChange={setSelectedDepartment}
             >
-              <option value="All">All</option>
-              {departments.map((dep) => (
-                <option key={dep.id} value={dep.name}>
-                  {dep.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full bg-white border-gray-300">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                {departments.map((dep) => (
+                  <SelectItem key={dep.id} value={dep.name}>
+                    {dep.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </SelectField>
           )}
         </div>
 
         <div className="flex flex-col">
-          <label htmlFor="user" className="block text-sm text-gray-600 mb-2">
+          <label
+            htmlFor="user"
+            className="block text-sm font-medium text-gray-600 mb-1"
+          >
             Filter by User
           </label>
           {loadingUsers ? (
-            <p className="text-gray-500">Loading users...</p>
+            <p className="text-sm text-gray-500">Loading...</p>
           ) : (
-            <select
-              id="user"
-              value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
-              className="bg-white text-gray-800 p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
-            >
-              <option value="All">All</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.name}>
-                  {user.name}
-                </option>
-              ))}
-            </select>
+            <SelectField value={selectedUser} onValueChange={setSelectedUser}>
+              <SelectTrigger className="w-full bg-white border-gray-300">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.name}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </SelectField>
           )}
         </div>
         <div className="flex flex-col">
-          <label className="block text-sm text-gray-600 mb-2">
+          <label className="block text-sm font-medium text-gray-600 mb-1">
             Filter by Status
           </label>
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="bg-white text-gray-800 p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
-          >
-            <option value="All">All</option>
-            <option value="ACTIVE">Active</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="DELAYED">Delayed</option>
-          </select>
+          <SelectField value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="w-full bg-white border-gray-300">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All</SelectItem>
+              <SelectItem value="ACTIVE">Active</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="DELAYED">Delayed</SelectItem>
+            </SelectContent>
+          </SelectField>
         </div>
 
         <div className="flex flex-col">
-          <label className="block text-sm text-gray-600 mb-2">
+          <label className="block text-sm font-medium text-gray-600 mb-1">
             Filter by Priority
           </label>
 
-          <select
+          <SelectField
             value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
-            className="bg-white text-gray-800 p-3 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+            onValueChange={setSelectedPriority}
           >
-            <option value="All">All</option>
-
-            {priorities.map((priority) => (
-              <option key={priority.id} value={priority.name}>
-                {priority.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full bg-white border-gray-300">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All</SelectItem>
+              {priorities.map((priority) => (
+                <SelectItem key={priority.id} value={priority.name}>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{
+                        backgroundColor:
+                          priority.name === "High"
+                            ? "#ef4444" // red
+                            : priority.name === "Medium"
+                              ? "#f59e0b" // amber
+                              : priority.name === "Low"
+                                ? "#10b981" // emerald
+                                : "#6b7280",
+                      }}
+                    />
+                    {priority.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </SelectField>
         </div>
       </div>
 
