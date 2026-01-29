@@ -35,16 +35,13 @@ export default function ServiceCompanyLanding() {
     setError("");
 
     if (isLogin) {
-      console.log("isLogin: ", isLogin);
       try {
-        console.log("Try Hit");
         const response = await fetch(`${API_BASE_URL}/api/users/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ email, password }),
         });
-        console.log("Response: ", response);
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -54,9 +51,7 @@ export default function ServiceCompanyLanding() {
 
         const data = await response.json();
         localStorage.setItem("token", data.token);
-        console.log("Data: ", data);
         const role = data.user?.role?.toUpperCase();
-        console.log("Role: ", role);
 
         if (role === "ADMIN") {
           router.push("/admin/dashboard");
@@ -239,11 +234,10 @@ export default function ServiceCompanyLanding() {
                           </label>
                           <div className="relative group">
                             <User
-                              className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${
-                                focusedField === "name"
-                                  ? "text-blue-600 scale-110"
-                                  : "text-gray-400"
-                              }`}
+                              className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${focusedField === "name"
+                                ? "text-blue-600 scale-110"
+                                : "text-gray-400"
+                                }`}
                             />
                             <Input
                               id="name"
@@ -269,11 +263,10 @@ export default function ServiceCompanyLanding() {
                         </label>
                         <div className="relative group">
                           <Mail
-                            className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${
-                              focusedField === "email"
-                                ? "text-blue-600 scale-110"
-                                : "text-gray-400"
-                            }`}
+                            className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${focusedField === "email"
+                              ? "text-blue-600 scale-110"
+                              : "text-gray-400"
+                              }`}
                           />
                           <Input
                             id="email"
@@ -298,11 +291,10 @@ export default function ServiceCompanyLanding() {
                         </label>
                         <div className="relative group">
                           <Lock
-                            className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${
-                              focusedField === "password"
-                                ? "text-blue-600 scale-110"
-                                : "text-gray-400"
-                            }`}
+                            className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${focusedField === "password"
+                              ? "text-blue-600 scale-110"
+                              : "text-gray-400"
+                              }`}
                           />
                           <Input
                             id="password"
@@ -340,11 +332,10 @@ export default function ServiceCompanyLanding() {
                           </label>
                           <div className="relative group">
                             <Lock
-                              className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${
-                                focusedField === "confirmPassword"
-                                  ? "text-blue-600 scale-110"
-                                  : "text-gray-400"
-                              }`}
+                              className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-200 ${focusedField === "confirmPassword"
+                                ? "text-blue-600 scale-110"
+                                : "text-gray-400"
+                                }`}
                             />
                             <Input
                               id="confirmPassword"

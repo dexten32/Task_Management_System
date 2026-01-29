@@ -167,8 +167,8 @@ export default function AdminTasksPage() {
           selectedDepartment === "All"
             ? `${API_BASE_URL}/api/users`
             : `${API_BASE_URL}/api/users?department=${encodeURIComponent(
-                selectedDepartment,
-              )}`;
+              selectedDepartment,
+            )}`;
 
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
@@ -235,7 +235,6 @@ export default function AdminTasksPage() {
         });
         if (!res.ok) throw new Error("Failed to fetch tasks");
         const data = await res.json();
-        console.log("data: ", data);
 
         const mappedTasks: Task[] = data.tasks.map((task: FetchedTask) => ({
           id: task.id,

@@ -6,17 +6,20 @@ import { useParams } from "next/navigation";
 import TaskDetailComponent from "../../../../components/taskDetailComponent"; // Import the shared component
 import API_BASE_URL from "@/lib/api";
 
+import { TaskStatus } from "@/lib/taskStatus";
+
 type Task = {
   id: string;
   title: string;
   description: string;
   deadline: string;
-  status: string;
+  status: TaskStatus;
   logs: {
     id: string;
     description: string;
     createdAt: string;
   }[];
+  priority?: { code: string; name: string; color: string };
 };
 
 export default function PreviousTaskDetailPage() {
@@ -52,8 +55,7 @@ export default function PreviousTaskDetailPage() {
         if (taskRes.ok) {
           const taskData = await taskRes.json();
           // Ensure logs is always an array (even if missing from API)
-          console.log("--- RAW API Response for Task (Previous) ---", taskData);
-          console.log("Parsed Task Status (Previous):", taskData.status);
+
           // Make sure to access taskData.task if your backend nests it
           setTask(taskData.task || taskData); // Adjust based on your API's actual response structure
         } else {

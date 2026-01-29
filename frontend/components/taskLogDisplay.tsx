@@ -62,7 +62,7 @@ export default function TaskLogDisplay({
         const newLog: Log = await res.json();
         onLogAdded(newLog);
         setLogDescription("");
-        console.log("Log added successfully:", newLog);
+
       } else {
         const errorData = await res.json();
         console.error("Failed to add log:", res.status, errorData);
@@ -124,9 +124,8 @@ export default function TaskLogDisplay({
                   className="mb-2 last:mb-0 border-b border-gray-700 pb-2"
                 >
                   <span
-                    className={`font-mono text-sm ${
-                      isOnTime ? "text-green-500" : "text-red-500"
-                    }`}
+                    className={`font-mono text-sm ${isOnTime ? "text-green-500" : "text-red-500"
+                      }`}
                   >
                     [{logTime.toLocaleDateString()}{" "}
                     {logTime.toLocaleTimeString()}]:{" "}

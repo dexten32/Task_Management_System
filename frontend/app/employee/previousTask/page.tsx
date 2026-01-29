@@ -76,7 +76,7 @@ export default function PreviousTasksSection() {
           : Array.isArray(data?.tasks)
             ? data.tasks
             : [];
-        console.log("Previous Tasks Data: ", tasksArray);
+
 
         setPreviousTasks(tasksArray);
       } catch (err) {

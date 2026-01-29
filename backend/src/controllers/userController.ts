@@ -82,11 +82,8 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: "1d" } // Token expires in 1 day
     );
 
-    console.log(
-      "Backend: Generated JWT Token:",
-      token.substring(0, 30) + "..."
-    ); // Log first 30 chars
-    console.log("Backend: Attempting to set 'token' cookie.");
+
+
 
     // Set the token as an HttpOnly cookie
     res.cookie("token", token, {
@@ -97,11 +94,11 @@ export const login = async (req: Request, res: Response) => {
       path: "/", // Make the cookie available across the entire domain
     });
 
-    console.log("Backend: 'token' cookie setting call completed.");
+
 
     // Send user data and token in JSON response for client-side localStorage as well
     res.status(200).json({ user, token });
-    console.log("Backend: Login response sent.");
+
   } catch (error: any) {
     console.error("Backend: Error during login:", error.message);
     res.status(401).json({ message: error.message || "Login failed" });

@@ -13,6 +13,7 @@ import priorityRoutes from "./routes/priorityRoutes";
 const prisma = new PrismaClient();
 const app = express();
 
+
 // Middleware
 app.use(express.json());
 

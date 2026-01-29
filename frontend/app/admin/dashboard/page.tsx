@@ -334,8 +334,6 @@ const DashboardPage = () => {
       <div className="flex flex-col xl:flex-row gap-6">
         {/* LEFT COLUMN: ANALYTICS & SIDEBAR */}
         <div className="w-full xl:w-80 flex flex-col gap-6 shrink-0 order-2 xl:order-1">
-          {/* KPI Cards */}
-          {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-4">
             <Card className="bg-white/80 backdrop-blur-sm border-indigo-100 shadow-sm">
               <CardContent className="p-4 flex flex-col items-center justify-center">

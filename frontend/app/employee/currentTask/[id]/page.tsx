@@ -52,8 +52,7 @@ export default function CurrentTaskDetailPage() {
         });
         if (taskRes.ok) {
           const taskData = await taskRes.json();
-          console.log("--- RAW API Response for Task (Current) ---", taskData);
-          console.log("Parsed Task Status (Current):", taskData.status);
+
           // Ensure logs is always an array
           setTask(taskData);
         } else {
