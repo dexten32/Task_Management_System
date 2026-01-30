@@ -513,7 +513,7 @@ export default function AdminTasksPage() {
           ))
         ) : (
           <p className="text-gray-600 text-lg text-center py-10">
-            No tasks found for the selected filters.
+            No tasks found.
           </p>
         )}
       </div>

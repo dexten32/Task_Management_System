@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -431,8 +430,9 @@ const DashboardPage = () => {
                         const percent = slice.value / totalChartValue;
                         const radius = 50;
                         const circumference = 2 * Math.PI * radius;
-                        const strokeDasharray = `${percent * circumference
-                          } ${circumference}`;
+                        const strokeDasharray = `${
+                          percent * circumference
+                        } ${circumference}`;
                         const strokeDashoffset =
                           -cumulativePercent * circumference;
                         cumulativePercent += percent;
@@ -574,7 +574,7 @@ const DashboardPage = () => {
                     ))
                   ) : (
                     <li className="p-4 text-gray-500 text-center text-sm">
-                      No recent tasks match filters
+                      No recent tasks.
                     </li>
                   )}
                 </ul>
@@ -623,7 +623,7 @@ const DashboardPage = () => {
                     ))
                   ) : (
                     <p className="text-gray-500 text-center text-sm">
-                      No delayed tasks match filters.
+                      No delayed tasks.
                     </p>
                   )}
                 </div>

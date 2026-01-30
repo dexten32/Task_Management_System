@@ -213,7 +213,7 @@ export default function PreviousTasksSection() {
       {/* Main Content */}
       {!loading && !error && sortedDates.length === 0 && (
         <p className="text-gray-500 text-center mt-10">
-          No filtered tasks found.
+          No tasks found.
         </p>
       )}
 

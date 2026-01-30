@@ -251,7 +251,7 @@ export default function CurrentTasksSection() {
         <>
           {sortedDates.length === 0 ? (
             <p className="text-gray-500 text-center mt-10">
-              No tasks found with the selected filters.
+              No tasks found.
             </p>
           ) : (
             sortedDates.map((date: string) => (
