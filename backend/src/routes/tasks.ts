@@ -4,6 +4,7 @@ import { createTask } from "../services/taskService";
 import { authenticateJWT } from "../middlewares/authMiddleware";
 import { verifyToken } from "../utils/jwt";
 import prisma from "../config/prisma";
+import { TaskStatus } from "@prisma/client";
 
 const router = express.Router();
 
@@ -27,6 +28,8 @@ router.post("/", authenticateJWT, async (req, res) => {
       deadline,
       assignedTo,
       assignedBy,
+      status: TaskStatus.ACTIVE,
+      priorityId: 1,
     });
     res.status(201).json(task);
   } catch (error) {

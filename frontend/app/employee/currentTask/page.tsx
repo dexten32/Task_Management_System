@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -209,42 +208,37 @@ export default function CurrentTasksSection() {
           <label className="block text-sm font-medium text-gray-600 mb-1">
             Priority
           </label>
-          <div className="flex flex-col">
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              Priority
-            </label>
-            <SelectField
-              value={selectedPriority}
-              onValueChange={setSelectedPriority}
-            >
-              <SelectTrigger className="w-[180px] bg-white border-gray-300">
-                <SelectValue placeholder="Filter by Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Priorities</SelectItem>
-                {priorities.map((priority) => (
-                  <SelectItem key={priority.id} value={priority.name}>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{
-                          backgroundColor:
-                            priority.name === "High"
-                              ? "#ef4444" // red
-                              : priority.name === "Medium"
-                                ? "#f59e0b" // amber
-                                : priority.name === "Low"
-                                  ? "#10b981" // emerald
-                                  : "#6b7280",
-                        }}
-                      />
-                      {priority.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </SelectField>
-          </div>
+          <SelectField
+            value={selectedPriority}
+            onValueChange={setSelectedPriority}
+          >
+            <SelectTrigger className="w-[180px] bg-white border-gray-300">
+              <SelectValue placeholder="Filter by Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Priorities</SelectItem>
+              {priorities.map((priority) => (
+                <SelectItem key={priority.id} value={priority.name}>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{
+                        backgroundColor:
+                          priority.name === "High"
+                            ? "#ef4444" // red
+                            : priority.name === "Medium"
+                              ? "#f59e0b" // amber
+                              : priority.name === "Low"
+                                ? "#10b981" // emerald
+                                : "#6b7280",
+                      }}
+                    />
+                    {priority.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </SelectField>
         </div>
       </div>
 

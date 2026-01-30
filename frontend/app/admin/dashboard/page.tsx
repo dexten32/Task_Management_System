@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -17,6 +16,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import ClientTaskDetail from "@/components/ClientTaskDetail";
 import API_BASE_URL from "@/lib/api";
+
+interface UserResponse {
+  id: string;
+  name: string;
+  email: string;
+  departmentId: string | null;
+  role?: string;
+  approved?: boolean;
+}
 
 interface User {
   id: string;
@@ -42,9 +50,9 @@ interface Task {
   createdAt?: string;
 }
 
-interface PendingUser extends User {
-  role: string;
-}
+// interface PendingUser extends User {
+//   role: string;
+// }
 
 interface Department {
   id: string;
@@ -79,7 +87,7 @@ const DashboardPage = () => {
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  // const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
 
   // Loading & Error States
   const [isModalDataLoading, setIsModalDataLoading] = useState(true);
@@ -114,9 +122,9 @@ const DashboardPage = () => {
         });
         if (!userResponse.ok) throw new Error("Failed to fetch users");
         const usersData = await userResponse.json();
-        const usersArray = usersData.users || [];
+        const usersArray: UserResponse[] = usersData.users || [];
 
-        const mappedUsers: User[] = usersArray.map((user: any) => ({
+        const mappedUsers: User[] = usersArray.map((user: UserResponse) => ({
           id: user.id,
           name: user.name,
           email: user.email,
@@ -170,8 +178,8 @@ const DashboardPage = () => {
       if (!res.ok) throw new Error("Failed to fetch recent tasks");
       const data = await res.json();
       setRecentTasks(Array.isArray(data) ? data : (data.tasks ?? []));
-    } catch (err: unknown) {
-      console.error("Failed to fetch recent tasks", err);
+    } catch (error: unknown) {
+      console.error("Failed to fetch recent tasks", error);
     }
   };
 
@@ -233,7 +241,7 @@ const DashboardPage = () => {
     fetchTasks(filterUser, filterDept);
     fetchBackendDelayedTasks(filterUser, filterDept);
     fetchDashboardAggregates(filterUser, selectedDeptId).then(setAggregates);
-  }, [filterUser, filterDept]);
+  }, [filterUser, filterDept, selectedDeptId]);
 
   useEffect(() => {
     setSelectedUser("");
@@ -342,7 +350,8 @@ const DashboardPage = () => {
         const data = await response.json();
         setError(data.message || "Failed to create task");
       }
-    } catch (err: unknown) {
+    } catch (error: unknown) {
+      console.error("Error creating task", error);
       setError("Error creating task");
     }
   };
@@ -422,9 +431,8 @@ const DashboardPage = () => {
                         const percent = slice.value / totalChartValue;
                         const radius = 50;
                         const circumference = 2 * Math.PI * radius;
-                        const strokeDasharray = `${
-                          percent * circumference
-                        } ${circumference}`;
+                        const strokeDasharray = `${percent * circumference
+                          } ${circumference}`;
                         const strokeDashoffset =
                           -cumulativePercent * circumference;
                         cumulativePercent += percent;

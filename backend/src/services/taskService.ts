@@ -9,7 +9,6 @@ export interface TaskInput {
   assignedTo: string;
   assignedBy: string;
   priorityId: number;
-  departmentId: string;
 }
 
 // No longer used,  The logic is moved to the controller.
@@ -25,10 +24,10 @@ export const getRecentTasksByAdmin = async (
       ...(assignedToId && { assignedToId }),
       ...(departmentId &&
         !departmentId && {
-          assignedTo: {
-            departmentId,
-          },
-        }),
+        assignedTo: {
+          departmentId,
+        },
+      }),
     },
     take: limit,
     orderBy: {
@@ -74,7 +73,7 @@ export const createTask = async (data: TaskInput) => {
 
 export const updateTaskStatusInDB = async (
   taskId: string,
-  newStatus: TaskStatus.COMPLETED | TaskStatus.DELAYED | TaskStatus.ACTIVE,
+  newStatus: TaskStatus,
 ) => {
   return prisma.task.update({
     where: { id: taskId },

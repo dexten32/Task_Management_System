@@ -101,10 +101,10 @@ export default function EmployeeDashboard() {
         t.status === TASK_STATUS_CONFIG.PENDING.label ||
         t.status === TASK_STATUS_CONFIG.ACTIVE.label,
     )
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const delayedTasks = tasks
     .filter((t) => t.status === TASK_STATUS_CONFIG.DELAYED.label)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const completedTasks = tasks.filter(
     (t) => t.status === TASK_STATUS_CONFIG.COMPLETED.label,
   );

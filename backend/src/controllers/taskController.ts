@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import prisma from "../config/prisma";
 import {
   getRecentTasksByAdmin,
-  TaskInput,
   updateTaskStatusInDB,
 } from "../services/taskService";
 import dotenv from "dotenv";
@@ -220,10 +219,10 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
         ...(assignedToId && { assignedToId }),
         ...(departmentId &&
           !assignedToId && {
-            assignedTo: {
-              departmentId,
-            },
-          }),
+          assignedTo: {
+            departmentId,
+          },
+        }),
       },
       take: limit,
       orderBy: {
@@ -311,10 +310,10 @@ export const getTaskLimit = async (req: Request, res: Response) => {
       ...(assignedToId && { assignedToId }),
       ...(departmentId &&
         !assignedToId && {
-          assignedTo: {
-            departmentId,
-          },
-        }),
+        assignedTo: {
+          departmentId,
+        },
+      }),
     },
     take: limit,
     orderBy: {
@@ -392,7 +391,8 @@ export const getDashboardAggregates = async (req: Request, res: Response) => {
   const baseWhere: Prisma.TaskWhereInput = {
     assignedById: adminId,
     ...(assignedToId && { assignedToId }),
-    ...(departmentId && !assignedToId && { assignedTo: departmentId }),
+    ...(departmentId &&
+      !assignedToId && { assignedTo: { department: { id: departmentId } } }),
   };
   const now = new Date();
   const [total, active, delayed, completed] = await Promise.all([

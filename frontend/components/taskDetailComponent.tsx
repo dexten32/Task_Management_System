@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, react/jsx-no-comment-textnodes */
 "use client";
 
 import React, { useState, useEffect } from "react";
 import TaskLogDisplay from "./taskLogDisplay";
-import API_BASE_URL from "@/lib/api";
+// import API_BASE_URL from "@/lib/api";
 import { TaskStatus, TASK_STATUS_CONFIG } from "@/lib/taskStatus";
 
 type Log = {
@@ -18,7 +17,7 @@ type Task = {
   description: string;
   deadline: string;
   status: TaskStatus;
-  priority: { code: string; name: string; color: string };
+  priority?: { code: string; name: string; color: string };
   logs: Log[];
 };
 
@@ -47,40 +46,40 @@ export default function TaskDetailComponent({
     });
   };
 
-  const handleMarkAsComplete = async () => {
-    if (!task || !token) return;
+  // const handleMarkAsComplete = async () => {
+  //   if (!task || !token) return;
 
-    const now = new Date();
-    const deadline = new Date(task.deadline);
-    const newStatus: TaskStatus = now < deadline ? "COMPLETED" : "DELAYED";
+  //   const now = new Date();
+  //   const deadline = new Date(task.deadline);
+  //   const newStatus: TaskStatus = now < deadline ? "COMPLETED" : "DELAYED";
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/tasks/${task.id}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
+  //   try {
+  //     const res = await fetch(`${API_BASE_URL}/api/tasks/${task.id}/status`, {
+  //       method: "PATCH",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //       body: JSON.stringify({ status: newStatus }),
+  //     });
 
-      if (res.ok) {
-        setTask((prev) => (prev ? { ...prev, status: newStatus } : prev));
-        handleLogAdded({
-          id: Date.now().toString(),
-          description: `Task status changed to ${newStatus}.`,
-          createdAt: new Date().toISOString(),
-        });
-      } else {
-        const errorData = await res.json();
-        alert(`Failed to update task status: ${errorData.message || "Error"}`);
-      }
-    } catch {
-      alert("Network error. Could not update task status.");
-    }
-  };
+  //     if (res.ok) {
+  //       setTask((prev) => (prev ? { ...prev, status: newStatus } : prev));
+  //       handleLogAdded({
+  //         id: Date.now().toString(),
+  //         description: `Task status changed to ${newStatus}.`,
+  //         createdAt: new Date().toISOString(),
+  //       });
+  //     } else {
+  //       const errorData = await res.json();
+  //       alert(`Failed to update task status: ${errorData.message || "Error"}`);
+  //     }
+  //   } catch {
+  //     alert("Network error. Could not update task status.");
+  //   }
+  // };
 
-  const canModifyTask = task.status === "ACTIVE" || task.status === "PENDING";
+  // const canModifyTask = task.status === "ACTIVE" || task.status === "PENDING";
 
   const showCompletedOrDelayedMessage =
     task.status === "COMPLETED" || task.status === "DELAYED";
