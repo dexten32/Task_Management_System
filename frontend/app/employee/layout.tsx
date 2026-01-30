@@ -148,7 +148,7 @@ export default function EmployeeLayout({ children }: { children: ReactNode }) {
         <nav className="mt-8" onClick={closeMobileSidebar}>
           <SidebarLink
             href="/employee/dashboard"
-            icon={<CircleCheck />}
+            icon={<Home />}
             label="Dashboard"
             sidebarOpen={true}
           />
