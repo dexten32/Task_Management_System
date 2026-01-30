@@ -110,7 +110,11 @@ export default function EmployeeDashboard() {
   );
 
   const completionRate =
-    totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
+    totalTasks > 0
+      ? Math.round(
+        ((completedTasks.length + delayedTasks.length) / totalTasks) * 100,
+      )
+      : 0;
 
   if (loading && tasks.length === 0) {
     return (
@@ -163,7 +167,8 @@ export default function EmployeeDashboard() {
               </div>
             </div>
             <p className="text-xs text-center text-gray-500 mt-2">
-              {completedTasks.length} of {totalTasks} tasks completed
+              {completedTasks.length + delayedTasks.length} of {totalTasks}{" "}
+              tasks completed
             </p>
           </div>
         </Card>
@@ -291,11 +296,10 @@ function DetailedTaskCard({
   return (
     <div
       onClick={onClick}
-      className={`relative bg-white shadow-sm rounded-lg border ${
-        isDelayed
+      className={`relative bg-white shadow-sm rounded-lg border ${isDelayed
           ? "border-red-200 bg-red-50/30"
           : "border-indigo-100 hover:border-indigo-300"
-      } hover:shadow-md transition-all duration-200 cursor-pointer p-4`}
+        } hover:shadow-md transition-all duration-200 cursor-pointer p-4`}
     >
       <div className="flex flex-col gap-3">
         <div className="flex justify-between items-start gap-2">
@@ -335,16 +339,18 @@ function DetailedTaskCard({
             </div>
           </div>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onComplete();
-            }}
-            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-200"
-          >
-            <CheckCircle className="w-3.5 h-3.5" />
-            Complete
-          </button>
+          {!isDelayed && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onComplete();
+              }}
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-200"
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              Complete
+            </button>
+          )}
         </div>
       </div>
     </div>

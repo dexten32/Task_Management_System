@@ -56,6 +56,12 @@ type Priority = {
   name: string;
   color: string;
 };
+type DashboardAggregates = {
+  total: number;
+  active: number;
+  delayed: number;
+  completed: number;
+};
 
 const DashboardPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -88,6 +94,12 @@ const DashboardPage = () => {
   // Filters State
   const [filterDept, setFilterDept] = useState<string>("All");
   const [filterUser, setFilterUser] = useState<string>("All");
+  const [aggregates, setAggregates] = useState<DashboardAggregates>({
+    total: 0,
+    active: 0,
+    delayed: 0,
+    completed: 0,
+  });
 
   useEffect(() => {
     const fetchUsersAndDepartments = async () => {
@@ -193,9 +205,34 @@ const DashboardPage = () => {
     }
   };
 
+  const fetchDashboardAggregates = async (
+    filterUser: string,
+    filterDept: string,
+  ) => {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("No Token");
+
+    const query = new URLSearchParams();
+
+    if (filterUser !== "All") {
+      query.set("userId", filterUser);
+    } else if (filterDept !== "All") {
+      query.set("departmentId", filterDept);
+    }
+
+    const res = await fetch(
+      `${API_BASE_URL}/api/tasks/dashboard-aggregate?${query.toString()}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    return res.json();
+  };
+
   useEffect(() => {
     fetchTasks(filterUser, filterDept);
     fetchBackendDelayedTasks(filterUser, filterDept);
+    fetchDashboardAggregates(filterUser, selectedDeptId).then(setAggregates);
   }, [filterUser, filterDept]);
 
   useEffect(() => {
@@ -240,21 +277,16 @@ const DashboardPage = () => {
 
   const filteredRecentTasks = applyFilters(recentTasks);
   const filteredDelayedTasks = applyFilters(backendDelayedTasks);
-  const totalVisibleTasks =
-    filteredRecentTasks.length + filteredDelayedTasks.length;
-  const recentCount = filteredRecentTasks.length;
-  const delayedCount =
-    filteredDelayedTasks.length +
-    filteredRecentTasks.filter((t) => t.status === "DELAYED").length;
-  const completedCount = filteredRecentTasks.filter(
-    (t) => t.status === "COMPLETED",
-  ).length;
+  const totalTasks = aggregates.total;
+  const activeTasks = aggregates.active;
+  const delayedTasks = aggregates.delayed;
+  const completedTasks = aggregates.completed;
 
   // Pie Chart Data
   const chartData = [
-    { label: "Active", value: recentCount, color: "#6366f1" }, // indigo-500
-    { label: "Completed", value: completedCount, color: "#10b981" }, // emerald-500
-    { label: "Delayed", value: delayedCount, color: "#f59e0b" }, // amber-500
+    { label: "Active", value: activeTasks, color: "#6366f1" }, // indigo-500
+    { label: "Completed", value: completedTasks, color: "#10b981" }, // emerald-500
+    { label: "Delayed", value: delayedTasks, color: "#f59e0b" }, // amber-500
   ].filter((d) => d.value > 0);
 
   const totalChartValue = chartData.reduce((acc, curr) => acc + curr.value, 0);
@@ -338,30 +370,30 @@ const DashboardPage = () => {
             <Card className="bg-white/80 backdrop-blur-sm border-indigo-100 shadow-sm">
               <CardContent className="p-4 flex flex-col items-center justify-center">
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                  Visible Tasks
+                  Total Tasks Assigned
                 </p>
                 <p className="text-3xl font-bold text-gray-800 mt-1">
-                  {totalVisibleTasks}
+                  {totalTasks}
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-indigo-50 border-indigo-100 shadow-sm">
               <CardContent className="p-3 flex flex-col items-center justify-center text-center">
                 <p className="text-[10px] text-indigo-600 font-bold uppercase">
-                  Active
+                  Active Tasks
                 </p>
                 <p className="text-xl font-bold text-indigo-800">
-                  {recentCount}
+                  {activeTasks}
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-amber-50 border-amber-100 shadow-sm">
               <CardContent className="p-3 flex flex-col items-center justify-center text-center">
                 <p className="text-[10px] text-amber-600 font-bold uppercase">
-                  Delayed
+                  Delayed Tasks
                 </p>
                 <p className="text-xl font-bold text-amber-800">
-                  {delayedCount}
+                  {delayedTasks}
                 </p>
               </CardContent>
             </Card>
@@ -371,7 +403,7 @@ const DashboardPage = () => {
           <Card className="bg-white border-gray-200 shadow-sm overflow-hidden">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-gray-700">
-                Analytics
+                Tasks Analytics
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col pb-6">

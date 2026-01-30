@@ -2,13 +2,14 @@
 import { useEffect, useState } from "react";
 import TaskDetailComponent from "@/components/taskDetailComponent";
 import API_BASE_URL from "@/lib/api";
+import { TaskStatus } from "@/lib/taskStatus";
 
 interface Task {
   id: string;
   title: string;
   description: string;
   deadline: string;
-  status: string;
+  status: TaskStatus;
   logs: { id: string; description: string; createdAt: string }[];
   assignedBy?: { id: string; username: string; email: string };
   assignedTo?: {
@@ -17,6 +18,7 @@ interface Task {
     email: string;
     department?: { id: string; name: string };
   };
+  priority: { id: string; code: string; name: string; color: string };
 }
 
 export default function ClientTaskDetail({ taskId }: { taskId: string }) {

@@ -7,7 +7,7 @@ import {
 } from "../services/taskService";
 import dotenv from "dotenv";
 import { getPreviousTasksByUser } from "../services/taskService";
-import { TaskStatus } from "@prisma/client";
+import { Prisma, TaskStatus } from "@prisma/client";
 
 declare module "express-serve-static-core" {
   interface Request {
@@ -220,10 +220,10 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
         ...(assignedToId && { assignedToId }),
         ...(departmentId &&
           !assignedToId && {
-          assignedTo: {
-            departmentId,
-          },
-        }),
+            assignedTo: {
+              departmentId,
+            },
+          }),
       },
       take: limit,
       orderBy: {
@@ -311,10 +311,10 @@ export const getTaskLimit = async (req: Request, res: Response) => {
       ...(assignedToId && { assignedToId }),
       ...(departmentId &&
         !assignedToId && {
-        assignedTo: {
-          departmentId,
-        },
-      }),
+          assignedTo: {
+            departmentId,
+          },
+        }),
     },
     take: limit,
     orderBy: {
@@ -379,4 +379,50 @@ export const getTaskById = async (
     console.error("Failed to get task:", error);
     res.status(500).json({ message: "Error fetching task" });
   }
+};
+
+export const getDashboardAggregates = async (req: Request, res: Response) => {
+  const adminId = req.user?.id;
+  if (!adminId) {
+    return res.status(400).json({ error: "Missing adminId" });
+  }
+  const assignedToId = req.query.userId as string | undefined;
+  const departmentId = req.query.departmentId as string | undefined;
+
+  const baseWhere: Prisma.TaskWhereInput = {
+    assignedById: adminId,
+    ...(assignedToId && { assignedToId }),
+    ...(departmentId && !assignedToId && { assignedTo: departmentId }),
+  };
+  const now = new Date();
+  const [total, active, delayed, completed] = await Promise.all([
+    prisma.task.count({ where: baseWhere }),
+    prisma.task.count({
+      where: {
+        ...baseWhere,
+        status: TaskStatus.ACTIVE,
+      },
+    }),
+    prisma.task.count({
+      where: {
+        ...baseWhere,
+        deadline: { lt: now },
+        status: {
+          in: [TaskStatus.ACTIVE, TaskStatus.DELAYED],
+        },
+      },
+    }),
+    prisma.task.count({
+      where: {
+        ...baseWhere,
+        status: TaskStatus.COMPLETED,
+      },
+    }),
+  ]);
+  res.json({
+    total,
+    active,
+    delayed,
+    completed,
+  });
 };

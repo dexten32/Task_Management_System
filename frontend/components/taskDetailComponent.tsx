@@ -86,18 +86,34 @@ export default function TaskDetailComponent({
     task.status === "COMPLETED" || task.status === "DELAYED";
 
   return (
-    <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="bg-white rounded-2xl w-full max-h-[90vh] overflow-hidden flex flex-col font-sans">
       {/* Header - Fixed */}
-      <div className="relative px-6 py-5 flex-shrink-0">
-        <div className="flex items-center justify-between mb-3">
-          <span
-            className={`text-xs font-semibold tracking-wider ${TASK_STATUS_CONFIG[task.status].colorClass}`}
-          >
-            {TASK_STATUS_CONFIG[task.status].label}
-          </span>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+      <div className="relative px-8 py-6 flex-shrink-0  border-b border-slate-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${TASK_STATUS_CONFIG[task.status].colorClass} border border-current/10`}
+            >
+              {TASK_STATUS_CONFIG[task.status].label}
+            </span>
+            {task.priority && (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-100">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{
+                    backgroundColor: task.priority.color,
+                  }}
+                />
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  {task.priority.name}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-slate-50 px-2.5 py-1 rounded-full">
             <svg
-              className="w-3.5 h-3.5"
+              className="w-3.5 h-3.5 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -117,50 +133,26 @@ export default function TaskDetailComponent({
           </div>
         </div>
 
-        <div className="flex item-start justify-between mb-2 gap-2">
-          <h1 className="text-2xl md:text-4xl font-semibold text-slate-900 mb-2 tracking-tight">
-            {task.title}
-          </h1>
-          {task.priority && (
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span
-                className="h-3 w-3 rounded-full"
-                style={{
-                  backgroundColor: task.priority.color,
-                }}
-              />
-              <span className="text-base font-bold text-gray-600 translate-y-[-1px]">
-                {task.priority.name}
-              </span>
-            </div>
-          )}
-        </div>
+        <h1 className="text-2xl font-bold text-slate-900 mb-3 tracking-tight leading-tight">
+          {task.title}
+        </h1>
 
-        <p className="text-slate-600 text-md leading-relaxed font-semibold">
+        <p className="text-slate-500 text-sm leading-relaxed max-w-2xl">
           {task.description}
         </p>
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-5">
+      <div className="flex-1 overflow-y-auto px-8 py-6 bg-white custom-scrollbar">
         <TaskLogDisplay task={task} onLogAdded={handleLogAdded} token={token} />
       </div>
 
       {/* Footer - Fixed */}
-      <div className="px-6 py-4 border-t border-slate-200 flex-shrink-0">
-        {/*{canModifyTask && (
-          <button
-            onClick={handleMarkAsComplete}
-            className="w-full px-6 py-2.5 bg-slate-900 text-white text-sm font-medium tracking-wide hover:bg-slate-800 transition-colors duration-200 rounded"
-          >
-           Mark as Complete
-          </button>
-        )}*/}
-
+      <div className="px-8 py-5 border-t border-slate-100 flex-shrink-0">
         {showCompletedOrDelayedMessage && (
-          <div className="flex items-center gap-2.5 py-2">
+          <div className="flex items-center justify-center gap-2 py-1">
             <svg
-              className="w-6 h-6 text-emerald-600 flex-shrink-0"
+              className="w-5 h-5 text-emerald-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -169,11 +161,14 @@ export default function TaskDetailComponent({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2"
-                d="M5 13l4 4L19 7"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
               ></path>
             </svg>
-            <span className="text-gray-700 text-base font-semibold">
-              Task marked as {task.status.toLowerCase()}
+            <span className="text-slate-600 text-sm font-medium">
+              Task marked as{" "}
+              <span className="font-bold text-slate-800">
+                {task.status.toLowerCase()}
+              </span>
             </span>
           </div>
         )}

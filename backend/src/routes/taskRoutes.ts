@@ -9,6 +9,7 @@ import {
   getPreviousTasks,
   getTaskLimit,
   getTaskById,
+  getDashboardAggregates,
 } from "../controllers/taskController";
 import { authenticateJWT } from "../middlewares/authMiddleware";
 import { Request, Response, NextFunction } from "express";
@@ -21,8 +22,8 @@ function asyncHandler(
   fn: (
     req: express.Request,
     res: express.Response,
-    next: express.NextFunction
-  ) => Promise<any>
+    next: express.NextFunction,
+  ) => Promise<any>,
 ): express.RequestHandler {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
@@ -45,21 +46,26 @@ router.get("/my-tasks", authenticateJWT, asyncHandler(getMyTasks));
 router.get("/delayed", authenticateJWT, asyncHandler(getDelayedTasks));
 router.get("/previous", authenticateJWT, asyncHandler(getPreviousTasks));
 router.get(
+  "/dashboard-aggregate",
+  authenticateJWT,
+  asyncHandler(getDashboardAggregates),
+);
+router.get(
   "/:id",
   authenticateJWT,
   asyncHandler(
     getTaskById as unknown as (
       req: express.Request,
       res: express.Response,
-      next: express.NextFunction
-    ) => Promise<any>
-  )
+      next: express.NextFunction,
+    ) => Promise<any>,
+  ),
 );
 
 router.patch(
   "/:taskId/status",
   authenticateJWT,
-  asyncHandler(updateTaskStatus)
+  asyncHandler(updateTaskStatus),
 );
 
 export default router;

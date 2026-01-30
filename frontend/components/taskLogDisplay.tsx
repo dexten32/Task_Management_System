@@ -77,35 +77,47 @@ export default function TaskLogDisplay({
   };
 
   return (
-    <div className="mt-8 bg-slate-100 border border-gray-600 rounded-lg p-6 shadow-lg">
-      <h2 className="text-2xl font-bold mb-4 text-gray-600">Task Logs</h2>
+    <div className="mt-6">
+      <h2 className="text-lg font-semibold mb-4 text-slate-800 flex items-center gap-2">
+        Task Logs
+        <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+          {task.logs.length}
+        </span>
+      </h2>
 
-      {/* Log Input Area (conditionally rendered) - NOW AT THE TOP */}
+      {/* Log Input Area */}
       {canAddLogs && (
-        <div className="mb-4 flex flex-col">
-          <textarea
-            value={logDescription}
-            onChange={(e) => setLogDescription(e.target.value)}
-            placeholder="Add a new log for this task..."
-            className="w-full p-3 bg-white border border-gray-600 rounded text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={3}
-          ></textarea>
-          <button
-            onClick={handleAddLog}
-            disabled={addingLog || !logDescription.trim()}
-            className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded self-end disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {addingLog ? "Adding..." : "Add Log"}
-          </button>
+        <div className="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div className="relative">
+            <textarea
+              value={logDescription}
+              onChange={(e) => setLogDescription(e.target.value)}
+              placeholder="Add a progress update or note..."
+              className="w-full p-3 bg-white border border-slate-200 rounded-lg text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none text-sm"
+              rows={3}
+            ></textarea>
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={handleAddLog}
+                disabled={addingLog || !logDescription.trim()}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                {addingLog ? "Adding..." : "Add Log"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Log Display Area - NOW BELOW THE INPUT */}
-      <div className="bg-white text-gray-600 rounded p-4 max-h-64 overflow-y-auto border border-gray-700">
+      {/* Log Display Area */}
+      <div className="space-y-0 relative">
+        {/* Vertical Line for Timeline */}
+        {task.logs.length > 0 && <div className="absolute left-2.5 top-2 bottom-2 w-px bg-slate-200"></div>}
+
         {task.logs.length === 0 ? (
-          <p className="text-gray-500 text-center">
-            No logs yet for this task.
-          </p>
+          <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+            <p className="text-slate-500 text-sm">No activity logs recorded yet.</p>
+          </div>
         ) : (
           [...task.logs]
             .sort(
@@ -121,16 +133,24 @@ export default function TaskLogDisplay({
               return (
                 <div
                   key={log.id}
-                  className="mb-2 last:mb-0 border-b border-gray-700 pb-2"
+                  className="relative pl-8 pb-6 last:pb-0 group"
                 >
-                  <span
-                    className={`font-mono text-sm ${isOnTime ? "text-green-500" : "text-red-500"
-                      }`}
-                  >
-                    [{logTime.toLocaleDateString()}{" "}
-                    {logTime.toLocaleTimeString()}]:{" "}
-                  </span>
-                  {log.description}
+                  {/* Dot on Timeline */}
+                  <div className={`absolute left-1 mt-1.5 w-3 h-3 rounded-full border-2 ${isOnTime ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'} z-10`}></div>
+
+                  <div className="bg-white rounded-lg p-3 border border-slate-100 shadow-sm group-hover:border-slate-200 transition-colors">
+                    <div className="flex items-start justify-between gap-4 mb-1">
+                      <span
+                        className={`font-mono text-xs font-semibold ${isOnTime ? "text-green-600" : "text-red-600"}`}
+                      >
+                        {logTime.toLocaleDateString()}{" "}
+                        {logTime.toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
+                      {log.description}
+                    </p>
+                  </div>
                 </div>
               );
             })
