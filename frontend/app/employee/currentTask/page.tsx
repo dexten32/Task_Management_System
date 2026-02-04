@@ -41,6 +41,7 @@ const decodeJwtToken = (token: string): DecodedToken | null => {
 
 interface Task {
   id: string;
+  readableId?: number;
   title: string;
   description: string;
   deadline: string;
@@ -268,10 +269,10 @@ export default function CurrentTasksSection() {
                     >
                       <div className="p-5 pt-2 flex flex-col h-full justify-between">
                         <div>
-                          <div className="flex item-start justify-between mb-2 gap-2 line-clamp-1">
-                            <h4 className="text-lg font-semibold text-indigo-700 mb-2">
-                              {task.title}
-                            </h4>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                              {task.readableId ? `CYN-0${task.readableId}` : "N/A"}
+                            </span>
                             {task.priority && (
                               <div className="flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
                                 <span
@@ -286,6 +287,9 @@ export default function CurrentTasksSection() {
                               </div>
                             )}
                           </div>
+                          <h4 className="text-lg font-semibold text-indigo-700 mb-2 line-clamp-1">
+                            {task.title}
+                          </h4>
                           <p className="text-gray-600 text-sm mb-3 line-clamp-3">
                             {task.description}
                           </p>

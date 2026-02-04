@@ -10,6 +10,7 @@ import { format } from "date-fns";
 
 interface Task {
   id: string;
+  readableId?: number;
   title: string;
   description: string;
   deadline: string;
@@ -297,17 +298,22 @@ function DetailedTaskCard({
     <div
       onClick={onClick}
       className={`relative bg-white shadow-sm rounded-lg border ${isDelayed
-          ? "border-red-200 bg-red-50/30"
-          : "border-indigo-100 hover:border-indigo-300"
+        ? "border-red-200 bg-red-50/30"
+        : "border-indigo-100 hover:border-indigo-300"
         } hover:shadow-md transition-all duration-200 cursor-pointer p-4`}
     >
       <div className="flex flex-col gap-3">
         <div className="flex justify-between items-start gap-2">
-          <h4
-            className={`text-base font-semibold ${isDelayed ? "text-red-700" : "text-indigo-700"} line-clamp-1`}
-          >
-            {task.title}
-          </h4>
+          <div className="flex-1">
+            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded mb-1 inline-block">
+              {task.readableId ? `CYN-0${task.readableId}` : "N/A"}
+            </span>
+            <h4
+              className={`text-base font-semibold ${isDelayed ? "text-red-700" : "text-indigo-700"} line-clamp-1`}
+            >
+              {task.title}
+            </h4>
+          </div>
           {task.priority && (
             <div className="flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
               <span

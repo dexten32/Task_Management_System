@@ -6,7 +6,7 @@ export interface TaskInput {
   description: string;
   deadline: Date;
   status: TaskStatus;
-  assignedTo: string;
+  assignedTo: string[]; // Changed to array
   assignedBy: string;
   priorityId: number;
 }
@@ -21,11 +21,13 @@ export const getRecentTasksByAdmin = async (
   return await prisma.task.findMany({
     where: {
       assignedById: adminId,
-      ...(assignedToId && { assignedToId }),
+      ...(assignedToId && { assignees: { some: { id: assignedToId } } }), // Updated to check assignees
       ...(departmentId &&
         !departmentId && {
-        assignedTo: {
-          departmentId,
+        assignees: {
+          some: {
+            departmentId,
+          },
         },
       }),
     },
@@ -41,7 +43,7 @@ export const getRecentTasksByAdmin = async (
           color: true,
         },
       },
-      assignedTo: {
+      assignees: { // Include assignees instead of assignedTo
         select: {
           id: true,
           name: true,
@@ -58,15 +60,26 @@ export const getRecentTasksByAdmin = async (
 };
 
 export const createTask = async (data: TaskInput) => {
+  // Safe-guard: if assignedTo is passed as string, wrap in array (though TS should prevent)
+  const assigneeIds = Array.isArray(data.assignedTo) ? data.assignedTo : [data.assignedTo];
+
+  // For legacy support, we can pick the first one as assignedToId or leave it null/empty if the schema allows.
+  // Current schema: assignedToId is String. So we must provide one.
+  // We will pick the first one as the "primary" assignee for the legacy column.
+  const primaryAssigneeId = assigneeIds.length > 0 ? assigneeIds[0] : "";
+
   return prisma.task.create({
     data: {
       title: data.title,
       description: data.description,
       deadline: data.deadline,
-      assignedToId: data.assignedTo,
+      assignedToId: primaryAssigneeId, // Populate legacy field
       assignedById: data.assignedBy,
       priorityId: data.priorityId,
       status: TaskStatus.ACTIVE,
+      assignees: {
+        connect: assigneeIds.map((id) => ({ id })),
+      },
     },
   });
 };
@@ -86,7 +99,12 @@ export const updateTaskStatusInDB = async (
 export const getPreviousTasksByUser = async (userId: string) => {
   return prisma.task.findMany({
     where: {
-      assignedToId: userId,
+      // assignedToId: userId, // Legacy
+      assignees: {
+        some: {
+          id: userId
+        }
+      },
       OR: [{ status: TaskStatus.COMPLETED }, { status: TaskStatus.DELAYED }],
     },
     orderBy: {

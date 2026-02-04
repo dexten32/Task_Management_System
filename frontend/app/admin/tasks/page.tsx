@@ -19,7 +19,9 @@ interface Task {
   title: string;
   description: string;
   deadline: string;
+  readableId?: number;
   assignedTo: { id: string; name: string };
+  assignees?: { id: string; name: string; department?: { name?: string } }[];
   department: string;
   status: string;
   assignedBy: { id: string; name: string };
@@ -28,10 +30,12 @@ interface Task {
 
 interface FetchedTask {
   id: string;
+  readableId?: number;
   title: string;
   description: string;
   deadline: string;
   assignedTo?: { id: string; name: string; department?: { name?: string } };
+  assignees?: { id: string; name: string; department?: { name?: string } }[];
   status: string;
   assignedBy?: { id: string; name: string };
   priority: { code: string; name: string; color: string };
@@ -167,8 +171,8 @@ export default function AdminTasksPage() {
           selectedDepartment === "All"
             ? `${API_BASE_URL}/api/users`
             : `${API_BASE_URL}/api/users?department=${encodeURIComponent(
-                selectedDepartment,
-              )}`;
+              selectedDepartment,
+            )}`;
 
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
@@ -238,10 +242,12 @@ export default function AdminTasksPage() {
 
         const mappedTasks: Task[] = data.tasks.map((task: FetchedTask) => ({
           id: task.id,
+          readableId: task.readableId,
           title: task.title,
           description: task.description,
           deadline: task.deadline,
           assignedTo: task.assignedTo || { id: "", name: "N/A" },
+          assignees: task.assignees || [],
           department: task.assignedTo?.department?.name || "N/A",
           status: task.status,
           assignedBy: task.assignedBy || { id: "", name: "N/A" },
@@ -272,7 +278,9 @@ export default function AdminTasksPage() {
       selectedDepartment === "All" || task.department === selectedDepartment;
 
     const userMatch =
-      selectedUser === "All" || task.assignedTo?.name === selectedUser;
+      selectedUser === "All" ||
+      task.assignedTo?.name === selectedUser ||
+      (task.assignees && task.assignees.some(u => u.name === selectedUser));
 
     const priorityMatch =
       selectedPriority === "All" || task.priority?.name === selectedPriority;
@@ -459,6 +467,11 @@ export default function AdminTasksPage() {
                           </span>
                         </div>
                       )}
+
+                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded mb-1 inline-block">
+                        CYN-0{task.readableId}
+                      </span>
+
                       <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
                         {task.title}
                       </h3>
@@ -482,7 +495,9 @@ export default function AdminTasksPage() {
                           <span className="font-semibold text-gray-700">
                             Assigned To:
                           </span>{" "}
-                          {task.assignedTo?.name || "N/A"}
+                          {task.assignees && task.assignees.length > 0
+                            ? task.assignees.map((a) => a.name).join(", ")
+                            : task.assignedTo?.name || "N/A"}
                         </p>
                         <p>
                           <span className="font-semibold text-gray-700">
@@ -519,25 +534,27 @@ export default function AdminTasksPage() {
       </div>
 
       {/* Task Detail Modal */}
-      {selectedTaskId && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50 bg-transparent"
-          onClick={() => setSelectedTaskId(null)}
-        >
+      {
+        selectedTaskId && (
           <div
-            className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl h-[90vh] overflow-y-auto relative"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 flex items-center justify-center z-50 bg-transparent"
+            onClick={() => setSelectedTaskId(null)}
           >
-            <button
-              onClick={() => setSelectedTaskId(null)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-red-600 text-lg font-semibold"
+            <div
+              className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl h-[90vh] overflow-y-auto relative"
+              onClick={(e) => e.stopPropagation()}
             >
-              ✕
-            </button>
-            <ClientTaskDetail taskId={selectedTaskId} />
+              <button
+                onClick={() => setSelectedTaskId(null)}
+                className="absolute top-3 right-3 text-gray-500 hover:text-red-600 text-lg font-semibold"
+              >
+                ✕
+              </button>
+              <ClientTaskDetail taskId={selectedTaskId} />
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }

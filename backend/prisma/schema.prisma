@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -19,6 +20,8 @@ model User {
   password        String?
   assignedByTasks Task[]      @relation("assignedByTasks")
   assignedTasks   Task[]      @relation("assignedTasks")
+  assignedTaskAssignments Task[] @relation("TaskAssignees")
+  taskLogs        TaskLog[]
   department      Department? @relation(fields: [departmentId], references: [id])
 }
 
@@ -29,27 +32,24 @@ model Priority {
   color    String
   order    Int
   isActive Boolean @default(true)
-
   tasks    Task[]
 }
 
-
 model Task {
-  id           String    @id @default(cuid())
+  id           String     @id @default(cuid())
+  readableId   Int        @default(autoincrement()) // Removed @unique for now to avoid migration issues with existing data, will allow duplicate 0s temporarily if needed, but ideally db push handles it. actually @unique is fine with db push reset.
   title        String
   description  String
   deadline     DateTime
-  status       TaskStatus    @default(PENDING)
-  createdAt    DateTime  @default(now())
-
-  priorityId   Int?
-  priority     Priority?  @relation(fields: [priorityId], references: [id])
-
-
+  status       TaskStatus @default(PENDING)
+  createdAt    DateTime   @default(now())
   assignedById String
   assignedToId String
-  assignedBy   User      @relation("assignedByTasks", fields: [assignedById], references: [id])
-  assignedTo   User      @relation("assignedTasks", fields: [assignedToId], references: [id])
+  priorityId   Int?
+  assignedBy   User       @relation("assignedByTasks", fields: [assignedById], references: [id])
+  assignedTo   User       @relation("assignedTasks", fields: [assignedToId], references: [id])
+  assignees    User[]     @relation("TaskAssignees")
+  priority     Priority?  @relation(fields: [priorityId], references: [id])
   logs         TaskLog[]
 }
 
@@ -58,7 +58,9 @@ model TaskLog {
   description String
   createdAt   DateTime @default(now())
   taskId      String
+  userId      String?
   task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id])
 }
 
 model Department {

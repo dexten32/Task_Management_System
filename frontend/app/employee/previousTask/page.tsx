@@ -14,6 +14,7 @@ import {
 
 interface Task {
   id: string;
+  readableId?: number;
   title: string;
   description: string;
   deadline: string;
@@ -241,11 +242,10 @@ export default function PreviousTasksSection() {
                       : ""
                       }`}
                   >
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <h3 className="text-xl font-semibold text-blue-700 leading-tight">
-                        {task.title?.toUpperCase() ?? "UNTITLED TASK"}
-                      </h3>
-
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        {task.readableId ? `CYN-0${task.readableId}` : "N/A"}
+                      </span>
                       {task.priority && (
                         <div className="flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
                           <span
@@ -258,6 +258,9 @@ export default function PreviousTasksSection() {
                         </div>
                       )}
                     </div>
+                    <h3 className="text-xl font-semibold text-blue-700 leading-tight mb-3">
+                      {task.title?.toUpperCase() ?? "UNTITLED TASK"}
+                    </h3>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-3">
                       {task.description || "No description provided."}
                     </p>

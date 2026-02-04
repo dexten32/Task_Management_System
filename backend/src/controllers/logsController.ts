@@ -13,11 +13,20 @@ export const addLog = async (req: Request, res: Response) => {
   }
 
   try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     const newLog = await prisma.taskLog.create({
       data: {
         taskId,
         description,
+        userId: userId
       },
+      include: {
+        user: { select: { name: true } }
+      }
     });
     res.status(201).json(newLog);
   } catch (error) {

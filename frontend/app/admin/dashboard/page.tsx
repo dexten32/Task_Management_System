@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import MultiSelect from "@/components/MultiSelect";
 import ClientTaskDetail from "@/components/ClientTaskDetail";
 import API_BASE_URL from "@/lib/api";
 
@@ -38,9 +39,11 @@ interface User {
 interface Task {
   priority: { code: string; name: string; color: string };
   id: string;
+  readableId?: number;
   title: string;
   description: string;
   assignedTo?: { name: string; id: string };
+  assignees?: { name: string; id: string }[];
   assignedBy?: { name: string; id: string };
   deadline: string;
   status?: string; // Added status for filtering
@@ -75,7 +78,7 @@ const DashboardPage = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [selectedUser, setSelectedUser] = useState("");
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedDeptId, setSelectedDeptId] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -97,6 +100,7 @@ const DashboardPage = () => {
   const [selectedPriorityId, setSelectedPriorityId] = useState<number | null>(
     null,
   );
+  const [nextTaskId, setNextTaskId] = useState<number | null>(null);
 
   // Filters State
   const [filterDept, setFilterDept] = useState<string>("All");
@@ -194,7 +198,7 @@ const DashboardPage = () => {
       if (filterUser !== "All") {
         query.set("userId", filterUser);
       } else if (filterDept !== "All") {
-        query.set("DepartmentId", filterDept);
+        query.set("departmentId", filterDept);
       }
       const res = await fetch(
         `${API_BASE_URL}/api/tasks/delayed?${query.toString()}`,
@@ -227,13 +231,19 @@ const DashboardPage = () => {
       query.set("departmentId", filterDept);
     }
 
-    const res = await fetch(
-      `${API_BASE_URL}/api/tasks/dashboard-aggregate?${query.toString()}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
-    return res.json();
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/tasks/dashboard-aggregate?${query.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!res.ok) throw new Error("Failed to fetch aggregates");
+      return res.json();
+    } catch (error) {
+      console.error("Failed to fetch dashboard aggregates", error);
+      return { total: 0, active: 0, delayed: 0, completed: 0 };
+    }
   };
 
   useEffect(() => {
@@ -243,13 +253,33 @@ const DashboardPage = () => {
   }, [filterUser, filterDept, selectedDeptId]);
 
   useEffect(() => {
-    setSelectedUser("");
+    setSelectedUserIds([]);
   }, [selectedDeptId]);
 
-  // Prevent scroll when modal is open
   useEffect(() => {
     document.body.style.overflow = selectedTaskId ? "hidden" : "";
   }, [selectedTaskId]);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      const fetchNextId = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) return;
+          const res = await fetch(`${API_BASE_URL}/api/tasks/next-id`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setNextTaskId(data.nextId);
+          }
+        } catch (error) {
+          console.error("Failed to fetch next task ID", error);
+        }
+      };
+      fetchNextId();
+    }
+  }, [isModalOpen]);
 
   // --- FILTERING LOGIC ---
   const applyFilters = (tasks: Task[]) => {
@@ -276,7 +306,9 @@ const DashboardPage = () => {
       const matchesDept = filterDept === "All" || taskDeptId === filterDept;
 
       const matchesUser =
-        filterUser === "All" || task.assignedTo?.id === filterUser;
+        filterUser === "All" ||
+        task.assignedTo?.id === filterUser ||
+        task.assignees?.some(a => a.id === filterUser);
 
       return matchesDept && matchesUser;
     });
@@ -308,7 +340,7 @@ const DashboardPage = () => {
       !title ||
       !description ||
       !deadline ||
-      !selectedUser ||
+      selectedUserIds.length === 0 ||
       !selectedDeptId ||
       !selectedPriorityId
     ) {
@@ -329,7 +361,7 @@ const DashboardPage = () => {
           title,
           description,
           deadline,
-          assignedTo: selectedUser,
+          assignedTo: selectedUserIds,
           departmentId: selectedDeptId || null,
           priorityId: selectedPriorityId,
         }),
@@ -340,7 +372,7 @@ const DashboardPage = () => {
         setTitle("");
         setDescription("");
         setDeadline("");
-        setSelectedUser("");
+        setSelectedUserIds([]);
         setSelectedDeptId("");
         setSelectedPriorityId(null);
         setTimeout(() => setIsModalOpen(false), 1500);
@@ -430,9 +462,8 @@ const DashboardPage = () => {
                         const percent = slice.value / totalChartValue;
                         const radius = 50;
                         const circumference = 2 * Math.PI * radius;
-                        const strokeDasharray = `${
-                          percent * circumference
-                        } ${circumference}`;
+                        const strokeDasharray = `${percent * circumference
+                          } ${circumference}`;
                         const strokeDashoffset =
                           -cumulativePercent * circumference;
                         cumulativePercent += percent;
@@ -548,6 +579,9 @@ const DashboardPage = () => {
                           </div>
                         )}
                         <div>
+                          <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded mb-1 inline-block">
+                            CYN-0{task.readableId}
+                          </span>
                           <p className="text-sm text-gray-600 mb-1">
                             <strong>Title:</strong>{" "}
                             <span className="font-medium text-gray-800">
@@ -560,7 +594,9 @@ const DashboardPage = () => {
                           <p className="text-sm text-gray-600 mb-1">
                             <strong>Assigned To:</strong>{" "}
                             <span className="font-medium text-gray-800">
-                              {task.assignedTo?.name || "N/A"}
+                              {task.assignees && task.assignees.length > 0
+                                ? task.assignees.map(a => a.name).join(", ")
+                                : task.assignedTo?.name || "N/A"}
                             </span>
                           </p>
                           <p className="text-sm text-gray-600">
@@ -609,6 +645,9 @@ const DashboardPage = () => {
                           </div>
                         )}
                         <div className="flex-1">
+                          <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded mb-1 inline-block">
+                            CYN-0{task.readableId}
+                          </span>
                           <p className="font-medium text-gray-700 text-base">
                             {task.title}
                           </p>
@@ -640,7 +679,7 @@ const DashboardPage = () => {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-blue-50 backdrop-blur-md text-gray-800 rounded-xl p-6 w-full max-w-md relative shadow-xl border border-gray-200">
             <h2 className="text-2xl font-semibold mb-6 text-gray-900 text-center">
-              Create New Task
+              Create New Task {nextTaskId ? <span className="text-indigo-600">CYN-0{nextTaskId}</span> : ""}
             </h2>
             {isModalDataLoading ? (
               <div className="text-center py-8">
@@ -738,27 +777,18 @@ const DashboardPage = () => {
                   <label className="block mb-2 font-medium text-gray-700">
                     Assign To
                   </label>
-                  <SelectField
-                    value={selectedUser}
-                    onValueChange={setSelectedUser}
-                    disabled={!selectedDeptId}
-                  >
-                    <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="Select User" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allUsers
-                        .filter(
-                          (u) =>
-                            u.departmentId === selectedDeptId && u.approved,
-                        )
-                        .map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </SelectField>
+                  <MultiSelect
+                    options={allUsers
+                      .filter(
+                        (u) =>
+                          u.departmentId === selectedDeptId && u.approved,
+                      )
+                      .map((user) => ({ id: user.id, name: user.name }))}
+                    selectedIds={selectedUserIds}
+                    onChange={setSelectedUserIds}
+                    placeholder={selectedDeptId ? "Select Users..." : "Select Department First"}
+                    className={!selectedDeptId ? "opacity-50 pointer-events-none" : ""}
+                  />
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">

@@ -58,6 +58,13 @@ export const assignTask = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    // Support both single ID (legacy) and array of IDs
+    const assignedToIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+
+    if (assignedToIds.length === 0) {
+      return res.status(400).json({ message: "At least one assignee is required" });
+    }
+
     const deadlineDate = new Date(deadline);
     if (isNaN(deadlineDate.getTime())) {
       return res.status(400).json({ message: "Invalid deadline format" });
@@ -68,11 +75,14 @@ export const assignTask = async (req: Request, res: Response) => {
         title,
         description,
         deadline: deadlineDate,
-        assignedToId: assignedTo,
+        assignedToId: assignedToIds[0], // Use first user for legacy field
         assignedById: req.user.id,
         priorityId,
         status: TaskStatus.ACTIVE,
         createdAt: new Date(),
+        assignees: {
+          connect: assignedToIds.map((id: string) => ({ id })),
+        },
       },
       include: {
         priority: {
@@ -82,12 +92,20 @@ export const assignTask = async (req: Request, res: Response) => {
             color: true,
           },
         },
-        assignedTo: {
+        assignees: { // Include assignees
           select: {
             name: true,
             id: true,
             department: { select: { name: true, id: true } },
           },
+        },
+        // Legacy support: include assignedTo as well if frontend expects it
+        assignedTo: {
+          select: {
+            name: true,
+            id: true,
+            department: { select: { name: true, id: true } },
+          }
         },
         assignedBy: {
           select: { name: true, id: true },
@@ -118,17 +136,15 @@ export const getTasksController = async (req: Request, res: Response) => {
             color: true,
           },
         },
-        assignedTo: {
+        assignees: {
           select: {
             name: true,
             id: true,
             department: { select: { name: true, id: true } },
           },
         },
-        assignedBy: {
-          select: { name: true, id: true },
-        },
       },
+      orderBy: { createdAt: "desc" }
     });
     res.json({ tasks });
   } catch (error: any) {
@@ -148,6 +164,13 @@ export const getRecentTasks = async (req: Request, res: Response) => {
       include: {
         priority: {
           select: { code: true, name: true, color: true },
+        },
+        assignees: {
+          select: {
+            name: true,
+            id: true,
+            department: { select: { name: true, id: true } },
+          }
         },
         assignedTo: {
           select: {
@@ -175,12 +198,23 @@ export const getMyTasks = async (req: Request, res: Response) => {
     const userId = req.user?.id;
 
     const tasks = await prisma.task.findMany({
-      where: { assignedToId: userId },
+      where: {
+        // assignedToId: userId, // Legacy
+        assignees: {
+          some: {
+            id: userId
+          }
+        },
+        OR: [{ status: TaskStatus.ACTIVE }, { status: TaskStatus.DELAYED }, { status: TaskStatus.COMPLETED }]
+      },
       include: {
         priority: {
           select: { code: true, name: true, color: true },
         },
         assignedTo: {
+          select: { name: true, id: true },
+        },
+        assignees: {
           select: { name: true, id: true },
         },
         assignedBy: {
@@ -216,11 +250,13 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
         status: {
           in: [TaskStatus.ACTIVE, TaskStatus.DELAYED],
         },
-        ...(assignedToId && { assignedToId }),
+        ...(assignedToId && { assignees: { some: { id: assignedToId } } }), // Updated to check assignees
         ...(departmentId &&
           !assignedToId && {
-          assignedTo: {
-            departmentId,
+          assignees: {
+            some: {
+              departmentId,
+            }
           },
         }),
       },
@@ -231,6 +267,12 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
       include: {
         priority: {
           select: { code: true, name: true, color: true },
+        },
+        assignees: {
+          select: {
+            name: true,
+            id: true,
+          },
         },
         assignedTo: {
           select: {
@@ -307,11 +349,13 @@ export const getTaskLimit = async (req: Request, res: Response) => {
   const tasks = await prisma.task.findMany({
     where: {
       assignedById: adminId,
-      ...(assignedToId && { assignedToId }),
+      ...(assignedToId && { assignees: { some: { id: assignedToId } } }), // Updated
       ...(departmentId &&
         !assignedToId && {
-        assignedTo: {
-          departmentId,
+        assignees: {
+          some: {
+            departmentId,
+          }
         },
       }),
     },
@@ -325,6 +369,15 @@ export const getTaskLimit = async (req: Request, res: Response) => {
           code: true,
           name: true,
           color: true,
+        },
+      },
+      assignees: {
+        select: {
+          id: true,
+          name: true,
+          department: {
+            select: { id: true, name: true },
+          },
         },
       },
       assignedTo: {
@@ -344,6 +397,22 @@ export const getTaskLimit = async (req: Request, res: Response) => {
   res.json({ tasks });
 };
 
+// Start of Selection
+export const getNextTaskId = async (req: Request, res: Response) => {
+  try {
+    const lastTask = await prisma.task.findFirst({
+      orderBy: { readableId: "desc" },
+      select: { readableId: true },
+    });
+    const nextId = (lastTask?.readableId || 0) + 1;
+    res.json({ nextId });
+  } catch (error) {
+    console.error("Failed to get next task ID:", error);
+    res.status(500).json({ message: "Failed to get next task ID" });
+  }
+};
+// End of Selection
+
 export const getTaskById = async (
   req: Request<{ id: string }>,
   res: Response,
@@ -361,8 +430,18 @@ export const getTaskById = async (
           orderBy: {
             createdAt: "asc",
           },
+          include: {
+            user: {
+              select: { name: true }
+            }
+          }
         },
         assignedBy: true,
+        assignees: {
+          include: {
+            department: true,
+          },
+        },
         assignedTo: {
           include: {
             department: true,
@@ -385,44 +464,50 @@ export const getDashboardAggregates = async (req: Request, res: Response) => {
   if (!adminId) {
     return res.status(400).json({ error: "Missing adminId" });
   }
-  const assignedToId = req.query.userId as string | undefined;
-  const departmentId = req.query.departmentId as string | undefined;
 
-  const baseWhere: Prisma.TaskWhereInput = {
-    assignedById: adminId,
-    ...(assignedToId && { assignedToId }),
-    ...(departmentId &&
-      !assignedToId && { assignedTo: { department: { id: departmentId } } }),
-  };
-  const now = new Date();
-  const [total, active, delayed, completed] = await Promise.all([
-    prisma.task.count({ where: baseWhere }),
-    prisma.task.count({
-      where: {
-        ...baseWhere,
-        status: TaskStatus.ACTIVE,
-      },
-    }),
-    prisma.task.count({
-      where: {
-        ...baseWhere,
-        deadline: { lt: now },
-        status: {
-          in: [TaskStatus.ACTIVE, TaskStatus.DELAYED],
+  try {
+    const assignedToId = req.query.userId as string | undefined;
+    const departmentId = req.query.departmentId as string | undefined;
+
+    const baseWhere: Prisma.TaskWhereInput = {
+      assignedById: adminId,
+      ...(assignedToId && { assignees: { some: { id: assignedToId } } }),
+      ...(departmentId &&
+        !assignedToId && { assignees: { some: { department: { id: departmentId } } } }),
+    };
+    const now = new Date();
+    const [total, active, delayed, completed] = await Promise.all([
+      prisma.task.count({ where: baseWhere }),
+      prisma.task.count({
+        where: {
+          ...baseWhere,
+          status: TaskStatus.ACTIVE,
         },
-      },
-    }),
-    prisma.task.count({
-      where: {
-        ...baseWhere,
-        status: TaskStatus.COMPLETED,
-      },
-    }),
-  ]);
-  res.json({
-    total,
-    active,
-    delayed,
-    completed,
-  });
+      }),
+      prisma.task.count({
+        where: {
+          ...baseWhere,
+          deadline: { lt: now },
+          status: {
+            in: [TaskStatus.ACTIVE, TaskStatus.DELAYED],
+          },
+        },
+      }),
+      prisma.task.count({
+        where: {
+          ...baseWhere,
+          status: TaskStatus.COMPLETED,
+        },
+      }),
+    ]);
+    res.json({
+      total,
+      active,
+      delayed,
+      completed,
+    });
+  } catch (error: any) {
+    console.error("Error in getDashboardAggregates:", error);
+    res.status(500).json({ message: "Failed to fetch aggregates", error: error.message });
+  }
 };

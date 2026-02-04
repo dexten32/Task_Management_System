@@ -10,6 +10,7 @@ import {
   getTaskLimit,
   getTaskById,
   getDashboardAggregates,
+  getNextTaskId,
 } from "../controllers/taskController";
 import { authenticateJWT } from "../middlewares/authMiddleware";
 import { Request, Response, NextFunction } from "express";
@@ -41,6 +42,9 @@ router.get(`/recent`, authenticateJWT, asyncHandler(getRecentTasks));
 
 // GET /api/tasks/recentlimit
 router.get("/recentlimit", authenticateJWT, asyncHandler(getTaskLimit));
+
+router.get("/next-id", authenticateJWT, asyncHandler(getNextTaskId as any));
+
 
 router.get("/my-tasks", authenticateJWT, asyncHandler(getMyTasks));
 router.get("/delayed", authenticateJWT, asyncHandler(getDelayedTasks));

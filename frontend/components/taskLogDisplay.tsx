@@ -9,6 +9,7 @@ interface Log {
   id: string;
   description: string;
   createdAt: string;
+  user?: { name: string };
 }
 
 interface Task {
@@ -140,12 +141,17 @@ export default function TaskLogDisplay({
 
                   <div className="bg-white rounded-lg p-3 border border-slate-100 shadow-sm group-hover:border-slate-200 transition-colors">
                     <div className="flex items-start justify-between gap-4 mb-1">
-                      <span
-                        className={`font-mono text-xs font-semibold ${isOnTime ? "text-green-600" : "text-red-600"}`}
-                      >
-                        {logTime.toLocaleDateString()}{" "}
-                        {logTime.toLocaleTimeString()}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-slate-700">
+                          {log.user?.name || "System"}
+                        </span>
+                        <span
+                          className={`font-mono text-[10px] font-semibold ${isOnTime ? "text-green-600" : "text-red-600"}`}
+                        >
+                          {logTime.toLocaleDateString()}{" "}
+                          {logTime.toLocaleTimeString()}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
                       {log.description}

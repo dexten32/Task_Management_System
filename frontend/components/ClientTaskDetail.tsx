@@ -6,6 +6,7 @@ import { TaskStatus } from "@/lib/taskStatus";
 
 interface Task {
   id: string;
+  readableId?: number;
   title: string;
   description: string;
   deadline: string;
@@ -18,6 +19,13 @@ interface Task {
     email: string;
     department?: { id: string; name: string };
   };
+  assignees?: {
+    id: string;
+    name: string;
+    username: string;
+    email: string;
+    department?: { id: string; name: string };
+  }[];
   priority: { id: string; code: string; name: string; color: string };
 }
 

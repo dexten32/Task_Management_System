@@ -13,6 +13,7 @@ type Log = {
 
 type Task = {
   id: string;
+  readableId?: number;
   title: string;
   description: string;
   deadline: string;
@@ -94,6 +95,9 @@ export default function TaskDetailComponent({
               className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${TASK_STATUS_CONFIG[task.status].colorClass} border border-current/10`}
             >
               {TASK_STATUS_CONFIG[task.status].label}
+            </span>
+            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+              {task.readableId ? `CYN-0${task.readableId}` : "N/A"}
             </span>
             {task.priority && (
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-100">
