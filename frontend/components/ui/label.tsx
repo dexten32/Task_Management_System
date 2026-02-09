@@ -1,14 +1,17 @@
 // components/ui/label.tsx
-import React, { ReactNode } from "react";
+import React, { LabelHTMLAttributes, ReactNode } from "react";
+import { cn } from "@/lib/util";
 
-interface LabelProps {
+interface LabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
   children: ReactNode;
-  htmlFor: string;
 }
 
-export const Label = ({ children, ...props }: LabelProps) => {
+export const Label = ({ children, className, ...props }: LabelProps) => {
   return (
-    <label className="text-slate-100 font-medium" {...props}>
+    <label
+      className={cn("text-slate-100 font-medium", className)}
+      {...props}
+    >
       {children}
     </label>
   );

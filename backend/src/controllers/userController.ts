@@ -68,7 +68,20 @@ export const createUser = async (req: Request, res: Response) => {
       departmentId
     );
 
-    res.status(201).json(user);
+    // Fetch user with department to return complete object for frontend
+    const userWithDept = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    res.status(201).json(userWithDept);
   } catch (error: any) {
     console.error("Error creating user:", error);
     res.status(400).json({ message: error.message || "Failed to create user" });
