@@ -91,7 +91,25 @@ export const createUser = async (req: Request, res: Response) => {
 // Login
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, captchaToken } = req.body;
+
+    // Verify ReCAPTCHA
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+    if (secretKey) {
+      if (!captchaToken) {
+        return res.status(400).json({ message: "ReCAPTCHA token is missing" });
+      }
+
+      const verificationUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${captchaToken}`;
+      const captchaResponse = await fetch(verificationUrl, { method: "POST" });
+      const captchaData = await captchaResponse.json();
+
+      if (!captchaData.success) {
+        return res.status(400).json({ message: "ReCAPTCHA verification failed" });
+      }
+    } else {
+      console.warn("RECAPTCHA_SECRET_KEY not found in env, skipping verification.");
+    }
 
     const user = await loginUser(email, password);
 
