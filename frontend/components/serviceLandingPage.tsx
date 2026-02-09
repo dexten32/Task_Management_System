@@ -438,18 +438,24 @@ export default function ServiceCompanyLanding() {
                       )}
 
                       {isLogin && (
-                        <div className="flex justify-center">
-                          <ReCAPTCHA
-                            ref={recaptchaRef}
-                            sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
-                            onChange={(token) => setCaptchaToken(token)}
-                          />
+                        <div className="flex justify-center w-full overflow-hidden">
+                          <div className="transform scale-110 origin-center py-2">
+                            <ReCAPTCHA
+                              ref={recaptchaRef}
+                              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
+                              onChange={(token) => setCaptchaToken(token)}
+                            />
+                          </div>
                         </div>
                       )}
 
                       <Button
                         type="submit"
-                        className="relative w-full group overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-700 text-white font-semibold text-lg py-4 md:py-4 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
+                        disabled={isLogin && !captchaToken}
+                        className={`relative w-full group overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-700 text-white font-semibold text-lg py-4 md:py-4 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl ${isLogin && !captchaToken
+                            ? "opacity-50 cursor-not-allowed grayscale"
+                            : ""
+                          }`}
                       >
                         <span className="flex items-center justify-center space-x-2">
                           <span>{isLogin ? "Sign In" : "Create Account"}</span>
