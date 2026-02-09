@@ -48,6 +48,33 @@ export const signup = async (req: Request, res: Response) => {
   }
 };
 
+// Create User (Admin Only)
+export const createUser = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, role, departmentId } = req.body;
+
+    // Basic validation
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Reuse registerUser logic but force approved=true
+    const user = await registerUser(
+      name,
+      email,
+      password,
+      role,
+      true, // approved
+      departmentId
+    );
+
+    res.status(201).json(user);
+  } catch (error: any) {
+    console.error("Error creating user:", error);
+    res.status(400).json({ message: error.message || "Failed to create user" });
+  }
+};
+
 // Login
 export const login = async (req: Request, res: Response) => {
   try {

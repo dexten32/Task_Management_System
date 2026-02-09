@@ -42,7 +42,6 @@ interface Task {
   readableId?: number;
   title: string;
   description: string;
-  assignedTo?: { name: string; id: string };
   assignees?: { name: string; id: string }[];
   assignedBy?: { name: string; id: string };
   deadline: string;
@@ -287,19 +286,21 @@ const DashboardPage = () => {
       // Resolve Task Department ID
       let taskDeptId = task.departmentId;
 
-      if (!taskDeptId && task.assignedTo?.id) {
-        const assignedUser = allUsers.find((u) => u.id === task.assignedTo!.id);
+      if (!taskDeptId && task.assignees && task.assignees.length > 0) {
+        // Try to find department from the first assignee's ID in allUsers
+        const firstAssigneeId = task.assignees[0].id;
+        const assignedUser = allUsers.find((u) => u.id === firstAssigneeId);
         if (assignedUser?.departmentId) {
           taskDeptId = assignedUser.departmentId;
         }
-      }
 
-      // Fallback: Check for nested department object from API
-      if (!taskDeptId) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rawTask = task as any;
-        if (rawTask.assignedTo?.department?.id) {
-          taskDeptId = rawTask.assignedTo.department.id;
+        // Fallback: Check for nested department object from API in the assignee object
+        if (!taskDeptId) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const rawTask = task as any;
+          if (rawTask.assignees?.[0]?.department?.id) {
+            taskDeptId = rawTask.assignees[0].department.id;
+          }
         }
       }
 
@@ -307,8 +308,7 @@ const DashboardPage = () => {
 
       const matchesUser =
         filterUser === "All" ||
-        task.assignedTo?.id === filterUser ||
-        task.assignees?.some(a => a.id === filterUser);
+        task.assignees?.some((a) => a.id === filterUser);
 
       return matchesDept && matchesUser;
     });
@@ -336,15 +336,16 @@ const DashboardPage = () => {
     setError("");
     setSuccess("");
 
-    if (
-      !title ||
-      !description ||
-      !deadline ||
-      selectedUserIds.length === 0 ||
-      !selectedDeptId ||
-      !selectedPriorityId
-    ) {
-      setError("Please fill in all fields.");
+    const missingFields = [];
+    if (!title) missingFields.push("Title");
+    if (!description) missingFields.push("Description");
+    if (!deadline) missingFields.push("Deadline");
+    if (selectedUserIds.length === 0) missingFields.push("Assign To");
+    if (!selectedDeptId) missingFields.push("Department");
+    if (selectedPriorityId === null) missingFields.push("Priority");
+
+    if (missingFields.length > 0) {
+      setError(`Please fill in all fields: ${missingFields.join(", ")}`);
       return;
     }
 
@@ -361,7 +362,7 @@ const DashboardPage = () => {
           title,
           description,
           deadline,
-          assignedTo: selectedUserIds,
+          assignees: selectedUserIds,
           departmentId: selectedDeptId || null,
           priorityId: selectedPriorityId,
         }),
@@ -596,7 +597,7 @@ const DashboardPage = () => {
                             <span className="font-medium text-gray-800">
                               {task.assignees && task.assignees.length > 0
                                 ? task.assignees.map(a => a.name).join(", ")
-                                : task.assignedTo?.name || "N/A"}
+                                : "N/A"}
                             </span>
                           </p>
                           <p className="text-sm text-gray-600">

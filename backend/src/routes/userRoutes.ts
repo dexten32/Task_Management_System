@@ -2,6 +2,7 @@ import express, { RequestHandler } from "express";
 import {
   signup,
   login,
+  createUser,
   getAllUsers,
   getPendingUsers,
   approveUser,
@@ -19,8 +20,8 @@ const router = express.Router();
 // Helper to wrap async functions
 const asyncHandler =
   (fn: RequestHandler): RequestHandler =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+    (req, res, next) =>
+      Promise.resolve(fn(req, res, next)).catch(next);
 
 // Public routes
 router.post("/signup", signup);
@@ -57,11 +58,11 @@ router.get(
       email: user.email,
       approved: user.approved,
       role: user.role,
-      departmentId: user.departmentId || null, 
+      departmentId: user.departmentId || null,
       department: user.department
         ? { id: user.department.id, name: user.department.name }
         : null,
-      
+
     }));
 
     res.json({ users: formattedUsers });
@@ -77,6 +78,12 @@ router.patch(
   "/update/:userId",
   authenticateJWT,
   asyncHandler(updateUser as unknown as RequestHandler)
+);
+
+router.post(
+  "/create",
+  authenticateJWT,
+  asyncHandler(createUser as unknown as RequestHandler)
 );
 
 router.get("/profile", authenticateJWT, (req, res) => {

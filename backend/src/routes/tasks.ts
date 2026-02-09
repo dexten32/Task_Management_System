@@ -10,24 +10,23 @@ const router = express.Router();
 
 router.post("/", authenticateJWT, async (req, res) => {
   try {
-    const { title, description, deadline, assignedTo } = req.body;
+    const { title, description, deadline, assignees } = req.body;
 
-    if (!title || !description || !deadline || !assignedTo) {
-      res.status(400).json({ message: "All fields are required." });
-      return;
+    if (!title || !description || !deadline || !assignees) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    const assignedBy = req.user?.id;
-    if (!assignedBy) {
-      res.status(400).json({ message: "Assigned by user ID is required." });
-      return;
+    const userId = req.user?.id; // Assuming the authenticated user is the one assigning the task
+    if (!userId) {
+      return res.status(400).json({ message: "Assigned by user ID is required." });
     }
+
     const task = await createTask({
       title,
       description,
-      deadline,
-      assignedTo,
-      assignedBy,
+      deadline: new Date(deadline),
+      assignees,
+      assignedBy: userId,
       status: TaskStatus.ACTIVE,
       priorityId: 1,
     });
@@ -47,7 +46,13 @@ router.get("/", authenticateJWT, async (req, res) => {
     }
 
     const tasks = await prisma.task.findMany({
-      where: { assignedToId: userId },
+      where: {
+        assignees: {
+          some: {
+            id: userId
+          }
+        }
+      },
     });
 
     res.json(tasks);

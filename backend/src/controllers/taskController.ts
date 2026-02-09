@@ -19,7 +19,7 @@ interface AssignTaskRequestBody {
   title: string;
   description: string;
   deadline: string;
-  assignedToId: string;
+  assignees: string[]; // Updated for multiple assignees
   priority: { code: string; name: string; color: string };
 }
 
@@ -34,7 +34,7 @@ interface User {
 
 export const assignTask = async (req: Request, res: Response) => {
   try {
-    const { title, description, deadline, assignedTo, priorityId } = req.body;
+    const { title, description, deadline, assignees, priorityId } = req.body;
 
     if (!priorityId) {
       return res
@@ -54,14 +54,14 @@ export const assignTask = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    if (!title || !description || !deadline || !assignedTo) {
+    if (!title || !description || !deadline || !assignees) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Support both single ID (legacy) and array of IDs
-    const assignedToIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+    // Ensure assignees is an array
+    const assigneeIds = Array.isArray(assignees) ? assignees : [assignees];
 
-    if (assignedToIds.length === 0) {
+    if (assigneeIds.length === 0) {
       return res.status(400).json({ message: "At least one assignee is required" });
     }
 
@@ -70,18 +70,25 @@ export const assignTask = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid deadline format" });
     }
 
+    // Calculate next readableId
+    const lastTask = await prisma.task.findFirst({
+      orderBy: { readableId: "desc" },
+      select: { readableId: true },
+    });
+    const nextReadableId = (lastTask?.readableId || 0) + 1;
+
     const newTask = await prisma.task.create({
       data: {
+        readableId: nextReadableId,
         title,
         description,
         deadline: deadlineDate,
-        assignedToId: assignedToIds[0], // Use first user for legacy field
         assignedById: req.user.id,
         priorityId,
         status: TaskStatus.ACTIVE,
         createdAt: new Date(),
         assignees: {
-          connect: assignedToIds.map((id: string) => ({ id })),
+          connect: assigneeIds.map((id: string) => ({ id })),
         },
       },
       include: {
@@ -98,14 +105,6 @@ export const assignTask = async (req: Request, res: Response) => {
             id: true,
             department: { select: { name: true, id: true } },
           },
-        },
-        // Legacy support: include assignedTo as well if frontend expects it
-        assignedTo: {
-          select: {
-            name: true,
-            id: true,
-            department: { select: { name: true, id: true } },
-          }
         },
         assignedBy: {
           select: { name: true, id: true },
@@ -172,13 +171,6 @@ export const getRecentTasks = async (req: Request, res: Response) => {
             department: { select: { name: true, id: true } },
           }
         },
-        assignedTo: {
-          select: {
-            name: true,
-            id: true,
-            department: { select: { name: true, id: true } },
-          },
-        },
         assignedBy: {
           select: { name: true, id: true },
         },
@@ -199,7 +191,6 @@ export const getMyTasks = async (req: Request, res: Response) => {
 
     const tasks = await prisma.task.findMany({
       where: {
-        // assignedToId: userId, // Legacy
         assignees: {
           some: {
             id: userId
@@ -210,9 +201,6 @@ export const getMyTasks = async (req: Request, res: Response) => {
       include: {
         priority: {
           select: { code: true, name: true, color: true },
-        },
-        assignedTo: {
-          select: { name: true, id: true },
         },
         assignees: {
           select: { name: true, id: true },
@@ -241,7 +229,7 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
       req.query.limit ? parseInt(req.query.limit as string, 10) : 3,
       3,
     );
-    const assignedToId = req.query.userId as string | undefined;
+    const assigneeId = req.query.userId as string | undefined;
     const departmentId = req.query.departmentId as string | undefined;
     const tasks = await prisma.task.findMany({
       where: {
@@ -250,9 +238,9 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
         status: {
           in: [TaskStatus.ACTIVE, TaskStatus.DELAYED],
         },
-        ...(assignedToId && { assignees: { some: { id: assignedToId } } }), // Updated to check assignees
+        ...(assigneeId && { assignees: { some: { id: assigneeId } } }), // Updated to check assignees
         ...(departmentId &&
-          !assignedToId && {
+          !assigneeId && {
           assignees: {
             some: {
               departmentId,
@@ -269,12 +257,6 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
           select: { code: true, name: true, color: true },
         },
         assignees: {
-          select: {
-            name: true,
-            id: true,
-          },
-        },
-        assignedTo: {
           select: {
             name: true,
             id: true,
@@ -340,7 +322,7 @@ export const getTaskLimit = async (req: Request, res: Response) => {
     req.query.limit ? parseInt(req.query.limit as string, 10) : 3,
     3,
   );
-  const assignedToId = req.query.userId as string | undefined;
+  const assigneeId = req.query.userId as string | undefined;
   const departmentId = req.query.departmentId as string | undefined;
 
   if (!adminId) {
@@ -349,9 +331,9 @@ export const getTaskLimit = async (req: Request, res: Response) => {
   const tasks = await prisma.task.findMany({
     where: {
       assignedById: adminId,
-      ...(assignedToId && { assignees: { some: { id: assignedToId } } }), // Updated
+      ...(assigneeId && { assignees: { some: { id: assigneeId } } }), // Updated
       ...(departmentId &&
-        !assignedToId && {
+        !assigneeId && {
         assignees: {
           some: {
             departmentId,
@@ -372,15 +354,6 @@ export const getTaskLimit = async (req: Request, res: Response) => {
         },
       },
       assignees: {
-        select: {
-          id: true,
-          name: true,
-          department: {
-            select: { id: true, name: true },
-          },
-        },
-      },
-      assignedTo: {
         select: {
           id: true,
           name: true,
@@ -442,11 +415,6 @@ export const getTaskById = async (
             department: true,
           },
         },
-        assignedTo: {
-          include: {
-            department: true,
-          },
-        },
       },
     });
 
@@ -466,14 +434,14 @@ export const getDashboardAggregates = async (req: Request, res: Response) => {
   }
 
   try {
-    const assignedToId = req.query.userId as string | undefined;
+    const assigneeId = req.query.userId as string | undefined;
     const departmentId = req.query.departmentId as string | undefined;
 
     const baseWhere: Prisma.TaskWhereInput = {
       assignedById: adminId,
-      ...(assignedToId && { assignees: { some: { id: assignedToId } } }),
+      ...(assigneeId && { assignees: { some: { id: assigneeId } } }),
       ...(departmentId &&
-        !assignedToId && { assignees: { some: { department: { id: departmentId } } } }),
+        !assigneeId && { assignees: { some: { department: { id: departmentId } } } }),
     };
     const now = new Date();
     const [total, active, delayed, completed] = await Promise.all([

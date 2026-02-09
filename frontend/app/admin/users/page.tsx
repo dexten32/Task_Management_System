@@ -3,6 +3,24 @@
 import API_BASE_URL from "@/lib/api";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  SelectField,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface User {
   department: string | { name: string };
@@ -33,6 +51,16 @@ export default function UsersTab() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [error, setError] = useState<string>("");
+
+  // Add User State
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    password: "",
+    departmentId: "",
+    role: "",
+  });
 
   const hardcodedRoles: Role[] = [
     { id: "admin_role_id", name: "ADMIN" },
@@ -142,13 +170,167 @@ export default function UsersTab() {
     }
   };
 
+  const handleAddUser = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/users/create`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(newUser),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to create user");
+      }
+
+      const createdUser = await res.json();
+      setEmployeesList((prev) => [...prev, createdUser]);
+      setIsAddUserOpen(false);
+      setNewUser({
+        name: "",
+        email: "",
+        password: "",
+        departmentId: "",
+        role: "",
+      });
+      setError("");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Error creating user.");
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-6 p-4 md:p-6">
       {/* Employees Section */}
       <div className="flex-1 border p-4 rounded-2xl bg-gray-50 shadow-sm">
-        <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">
-          Employees
-        </h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg md:text-xl font-semibold text-gray-800">
+            Employees
+          </h3>
+          <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white border-none">
+                Add User
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] bg-white border-gray-200 text-gray-800">
+              <DialogHeader>
+                <DialogTitle className="text-gray-900">Add New User</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right text-gray-700">
+                    Name
+                  </Label>
+                  <Input
+                    id="name"
+                    value={newUser.name}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, name: e.target.value })
+                    }
+                    className="col-span-3 border-gray-300"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right text-gray-700">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, email: e.target.value })
+                    }
+                    className="col-span-3 border-gray-300"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="password" className="text-right text-gray-700">
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, password: e.target.value })
+                    }
+                    className="col-span-3 border-gray-300"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="department" className="text-right text-gray-700">
+                    Dept
+                  </Label>
+                  <div className="col-span-3">
+                    <SelectField
+                      value={newUser.departmentId}
+                      onValueChange={(val) =>
+                        setNewUser({ ...newUser, departmentId: val })
+                      }
+                    >
+                      <SelectTrigger className="w-full border-gray-300 bg-white text-gray-900">
+                        <SelectValue placeholder="Select Department" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        {departments.map((dept) => (
+                          <SelectItem
+                            key={dept.id}
+                            value={dept.id}
+                            className="text-gray-900 hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                          >
+                            {dept.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </SelectField>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="role" className="text-right text-gray-700">
+                    Role
+                  </Label>
+                  <div className="col-span-3">
+                    <SelectField
+                      value={newUser.role}
+                      onValueChange={(val) =>
+                        setNewUser({ ...newUser, role: val })
+                      }
+                    >
+                      <SelectTrigger className="w-full border-gray-300 bg-white text-gray-900">
+                        <SelectValue placeholder="Select Role" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        {hardcodedRoles.map((role) => (
+                          <SelectItem
+                            key={role.id}
+                            value={role.name}
+                            className="text-gray-900 hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                          >
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </SelectField>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={handleAddUser}
+                  className="bg-green-600 hover:bg-green-700 text-white border-none"
+                >
+                  Create User
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <div className="space-y-3">
           {employeesList.map((user) => (
