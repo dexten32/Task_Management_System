@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import ReCAPTCHA from "react-google-recaptcha";
@@ -33,6 +33,19 @@ export default function ServiceCompanyLanding() {
   const [focusedField, setFocusedField] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
+
+  // Reset ReCAPTCHA and form fields when switching between Login and Signup
+  useEffect(() => {
+    setCaptchaToken(null);
+    if (recaptchaRef.current) {
+      recaptchaRef.current.reset();
+    }
+    setError(""); // Also clear any previous errors
+    setName("");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+  }, [isLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,11 +93,16 @@ export default function ServiceCompanyLanding() {
         return;
       }
 
+      if (!captchaToken) {
+        setError("Please complete the recaptcha verification");
+        return;
+      }
+
       try {
         const response = await fetch(`${API_BASE_URL}/api/users/signup`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password }),
+          body: JSON.stringify({ name, email, password, captchaToken }),
         });
 
         if (!response.ok) {
@@ -437,24 +455,22 @@ export default function ServiceCompanyLanding() {
                         </div>
                       )}
 
-                      {isLogin && (
-                        <div className="flex justify-center w-full overflow-hidden">
-                          <div className="transform scale-110 origin-center py-2">
-                            <ReCAPTCHA
-                              ref={recaptchaRef}
-                              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
-                              onChange={(token) => setCaptchaToken(token)}
-                            />
-                          </div>
+                      <div className="flex justify-center w-full overflow-hidden">
+                        <div className="transform scale-110 origin-center py-2">
+                          <ReCAPTCHA
+                            ref={recaptchaRef}
+                            sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
+                            onChange={(token) => setCaptchaToken(token)}
+                          />
                         </div>
-                      )}
+                      </div>
 
                       <Button
                         type="submit"
-                        disabled={isLogin && !captchaToken}
-                        className={`relative w-full group overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-700 text-white font-semibold text-lg py-4 md:py-4 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl ${isLogin && !captchaToken
-                            ? "opacity-50 cursor-not-allowed grayscale"
-                            : ""
+                        disabled={!captchaToken}
+                        className={`relative w-full group overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-700 text-white font-semibold text-lg py-4 md:py-4 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl ${!captchaToken
+                          ? "opacity-50 cursor-not-allowed grayscale"
+                          : ""
                           }`}
                       >
                         <span className="flex items-center justify-center space-x-2">
