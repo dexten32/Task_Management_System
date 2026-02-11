@@ -13,6 +13,7 @@ import {
   logout,
 } from "../controllers/userController";
 import { authenticateJWT } from "../middlewares/authMiddleware";
+import { allowRoles } from "../middlewares/roleMiddleware";
 import prisma from "../config/prisma";
 
 const router = express.Router();
@@ -69,20 +70,22 @@ router.get(
   })
 );
 
-router.get("/pending", authenticateJWT, getPendingUsers);
-router.patch("/approve/:userId", authenticateJWT, approveUser);
-router.delete("/decline/:userId", authenticateJWT, declineUser);
-router.delete("/delete/:userId", authenticateJWT, deleteUser);
+router.get("/pending", authenticateJWT, allowRoles("ADMIN"), getPendingUsers);
+router.patch("/approve/:userId", authenticateJWT, allowRoles("ADMIN"), approveUser);
+router.delete("/decline/:userId", authenticateJWT, allowRoles("ADMIN"), declineUser);
+router.delete("/delete/:userId", authenticateJWT, allowRoles("ADMIN"), deleteUser);
 router.post("/logout", logout);
 router.patch(
   "/update/:userId",
   authenticateJWT,
+  allowRoles("ADMIN"),
   asyncHandler(updateUser as unknown as RequestHandler)
 );
 
 router.post(
   "/create",
   authenticateJWT,
+  allowRoles("ADMIN"),
   asyncHandler(createUser as unknown as RequestHandler)
 );
 

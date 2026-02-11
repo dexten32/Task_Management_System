@@ -13,6 +13,7 @@ import {
   getNextTaskId,
 } from "../controllers/taskController";
 import { authenticateJWT } from "../middlewares/authMiddleware";
+import { allowRoles } from "../middlewares/roleMiddleware";
 import { Request, Response, NextFunction } from "express";
 import { get } from "http";
 
@@ -32,7 +33,7 @@ function asyncHandler(
 }
 
 // POST /api/tasks/assign
-router.post("/assign", authenticateJWT, asyncHandler(assignTask));
+router.post("/assign", authenticateJWT, allowRoles("ADMIN", "MANAGER"), asyncHandler(assignTask));
 
 // GET /api/tasks?assignedBy=xxx
 router.get("/", authenticateJWT, asyncHandler(getTasksController));

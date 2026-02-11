@@ -290,6 +290,30 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
   }
 
   try {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: { assignees: true },
+    });
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const isAssignee = task.assignees.some((a) => a.id === user.id);
+    const isAdminOrManager =
+      user.role === "ADMIN" || user.role === "MANAGER";
+
+    if (!isAssignee && !isAdminOrManager) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to update this task." });
+    }
+
     const updatedTask = await updateTaskStatusInDB(taskId, status);
     return res
       .status(200)
@@ -405,9 +429,9 @@ export const getTaskById = async (
           },
           include: {
             user: {
-              select: { name: true }
-            }
-          }
+              select: { name: true },
+            },
+          },
         },
         assignedBy: true,
         assignees: {
@@ -419,6 +443,20 @@ export const getTaskById = async (
     });
 
     if (!task) return res.status(404).json({ message: "Task not found" });
+
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const isAssignee = task.assignees.some((a) => a.id === user.id);
+    const isCreator = task.assignedById === user.id;
+    const isAdminOrManager =
+      user.role === "ADMIN" || user.role === "MANAGER";
+
+    if (!isAssignee && !isCreator && !isAdminOrManager) {
+      return res.status(403).json({ message: "Access denied" });
+    }
 
     res.json(task);
   } catch (error) {
