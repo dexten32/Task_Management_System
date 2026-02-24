@@ -33,12 +33,12 @@ export default function ServiceCompanyLanding() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState("");
-  const [captchaToken, setCaptchaToken] = useState<string | null>("bypassed_for_now");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   // Reset ReCAPTCHA and form fields when switching between Login and Signup
   useEffect(() => {
-    setCaptchaToken("bypassed_for_now");
+    setCaptchaToken(null);
     if (recaptchaRef.current) {
       recaptchaRef.current.reset();
     }
@@ -494,7 +494,6 @@ export default function ServiceCompanyLanding() {
                         </div>
                       )}
 
-                      {/* ReCAPTCHA hidden for now
                       <div className="flex justify-center w-full overflow-hidden">
                         <div className="transform scale-110 origin-center py-2">
                           <ReCAPTCHA
@@ -504,7 +503,6 @@ export default function ServiceCompanyLanding() {
                           />
                         </div>
                       </div>
-                      */}
 
                       <Button
                         type="submit"

@@ -17,7 +17,7 @@ import MultiSelect from "@/components/MultiSelect";
 import ClientTaskDetail from "@/components/ClientTaskDetail";
 import API_BASE_URL from "@/lib/api";
 
-import { Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 
 interface UserResponse {
   id: string;

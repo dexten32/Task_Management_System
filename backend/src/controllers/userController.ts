@@ -36,8 +36,7 @@ export const signup = async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, approved, departmentId, captchaToken } = req.body;
 
-    // Verify ReCAPTCHA (Bypassed for now)
-    /*
+    // Verify ReCAPTCHA
     const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     if (secretKey) {
       if (!captchaToken) {
@@ -56,7 +55,6 @@ export const signup = async (req: Request, res: Response) => {
         "RECAPTCHA_SECRET_KEY not found in env, skipping verification."
       );
     }
-    */
     const user = await registerUser(
       name,
       email,
@@ -122,8 +120,7 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password, captchaToken } = req.body;
 
-    // Verify ReCAPTCHA (Bypassed for now)
-    /*
+    // Verify ReCAPTCHA
     const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     if (secretKey) {
       if (!captchaToken) {
@@ -140,7 +137,6 @@ export const login = async (req: Request, res: Response) => {
     } else {
       console.warn("RECAPTCHA_SECRET_KEY not found in env, skipping verification.");
     }
-    */
 
     const user = await loginUser(email, password);
 

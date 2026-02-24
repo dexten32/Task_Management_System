@@ -17,7 +17,7 @@ import MultiSelect from "@/components/MultiSelect";
 import ClientTaskDetail from "@/components/ClientTaskDetail";
 import API_BASE_URL from "@/lib/api";
 
-import { Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 
 interface UserResponse {
   id: string;
@@ -96,7 +96,6 @@ const DashboardPage = () => {
   const [backendDelayedTasks, setBackendDelayedTasks] = useState<Task[]>([]);
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   // const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
 
   // Loading & Error States
@@ -105,13 +104,13 @@ const DashboardPage = () => {
 
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [priorities, setPriorities] = useState<Priority[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [selectedPriorityId, setSelectedPriorityId] = useState<number | null>(
     null,
   );
   const [nextTaskId, setNextTaskId] = useState<number | null>(null);
 
   // Filters State
-  const [filterDept, setFilterDept] = useState<string>("All");
   const [filterUser, setFilterUser] = useState<string>("All");
   const [aggregates, setAggregates] = useState<DashboardAggregates>({
     total: 0,
@@ -181,7 +180,7 @@ const DashboardPage = () => {
     fetchUsersAndDepartments();
   }, []);
 
-  const fetchTasks = async (filterUser: string, filterDept: string) => {
+  const fetchTasks = async (filterUser: string) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication token not found.");
@@ -189,8 +188,6 @@ const DashboardPage = () => {
       query.set("limit", "3");
       if (filterUser !== "All") {
         query.set("userId", filterUser);
-      } else if (filterDept !== "All") {
-        query.set("departmentId", filterDept);
       }
       const res = await fetch(
         `${API_BASE_URL}/api/tasks/recentlimit?${query.toString()}`,
@@ -208,7 +205,6 @@ const DashboardPage = () => {
 
   const fetchBackendDelayedTasks = async (
     filterUser: string,
-    filterDept: string,
   ) => {
     try {
       const token = localStorage.getItem("token");
@@ -217,8 +213,6 @@ const DashboardPage = () => {
       query.set("limit", "3");
       if (filterUser !== "All") {
         query.set("userId", filterUser);
-      } else if (filterDept !== "All") {
-        query.set("departmentId", filterDept);
       }
       const res = await fetch(
         `${API_BASE_URL}/api/tasks/delayed?${query.toString()}`,
@@ -238,7 +232,6 @@ const DashboardPage = () => {
 
   const fetchDashboardAggregates = async (
     filterUser: string,
-    filterDept: string,
   ) => {
     const token = localStorage.getItem("token");
     if (!token) throw new Error("No Token");
@@ -247,10 +240,7 @@ const DashboardPage = () => {
 
     if (filterUser !== "All") {
       query.set("userId", filterUser);
-    } else if (filterDept !== "All") {
-      query.set("departmentId", filterDept);
     }
-
     try {
       const res = await fetch(
         `${API_BASE_URL}/api/tasks/dashboard-aggregate?${query.toString()}`,
@@ -267,10 +257,10 @@ const DashboardPage = () => {
   };
 
   useEffect(() => {
-    fetchTasks(filterUser, filterDept);
-    fetchBackendDelayedTasks(filterUser, filterDept);
-    fetchDashboardAggregates(filterUser, selectedDeptId).then(setAggregates);
-  }, [filterUser, filterDept, selectedDeptId]);
+    fetchTasks(filterUser);
+    fetchBackendDelayedTasks(filterUser);
+    fetchDashboardAggregates(filterUser).then(setAggregates);
+  }, [filterUser]);
 
   useEffect(() => {
     setSelectedUserIds([]);
@@ -325,13 +315,11 @@ const DashboardPage = () => {
         }
       }
 
-      const matchesDept = filterDept === "All" || taskDeptId === filterDept;
-
       const matchesUser =
         filterUser === "All" ||
         task.assignees?.some((a) => a.id === filterUser);
 
-      return matchesDept && matchesUser;
+      return matchesUser;
     });
   };
 
@@ -398,7 +386,7 @@ const DashboardPage = () => {
         setSelectedDeptId("");
         setSelectedPriorityId(null);
         setTimeout(() => setIsModalOpen(false), 1500);
-        fetchTasks(filterUser, filterDept);
+        fetchTasks(filterUser);
       } else {
         const data = await response.json();
         setError(data.message || "Failed to create task");
@@ -585,23 +573,19 @@ const DashboardPage = () => {
         <div className="flex-1 order-1 xl:order-1 flex flex-col gap-6">
           {/* Filter Bar */}
           <div className="bg-white/80 p-4 rounded-xl border border-gray-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Input
-              value={managerDeptName || "Loading..."}
-              disabled
-              className="bg-gray-100 border-gray-200 text-gray-600 font-medium cursor-not-allowed"
-            />
-
             <SelectField value={filterUser} onValueChange={setFilterUser}>
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="User" />
+              <SelectTrigger>
+                <SelectValue placeholder="Assigned To" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All">All Users</SelectItem>
-                {allUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="All">All Assignees</SelectItem>
+                {allUsers
+                  .filter((u) => u.role !== "MANAGER")
+                  .map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </SelectField>
           </div>
@@ -650,8 +634,14 @@ const DashboardPage = () => {
                             <strong>Assigned To:</strong>{" "}
                             <span className="font-medium text-gray-800">
                               {task.assignees && task.assignees.length > 0
-                                ? task.assignees.map(a => a.name).join(", ")
+                                ? task.assignees.map((a) => a.name).join(", ")
                                 : "N/A"}
+                            </span>
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <strong>Assigned By:</strong>{" "}
+                            <span className="font-medium text-gray-800">
+                              {task.assignedBy?.name || "N/A"}
                             </span>
                           </p>
                           <p className="text-sm text-gray-600">
@@ -703,11 +693,31 @@ const DashboardPage = () => {
                           <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded mb-1 inline-block">
                             CYN-0{task.readableId}
                           </span>
-                          <p className="font-medium text-gray-700 text-base">
-                            {task.title}
+                          <p className="text-sm text-gray-600 mb-1">
+                            <strong>Title:</strong>{" "}
+                            <span className="font-medium text-gray-800">
+                              {task.title}
+                            </span>
                           </p>
-                          <p className="text-sm text-red-500 mt-1">
-                            Overdue since:{" "}
+                          <p className="text-sm text-gray-600 mb-1 line-clamp-1">
+                            <strong>Desc:</strong> {task.description}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <strong>Assigned To:</strong>{" "}
+                            <span className="font-medium text-gray-800">
+                              {task.assignees && task.assignees.length > 0
+                                ? task.assignees.map((a) => a.name).join(", ")
+                                : "N/A"}
+                            </span>
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <strong>Assigned By:</strong>{" "}
+                            <span className="font-medium text-gray-800">
+                              {task.assignedBy?.name || "N/A"}
+                            </span>
+                          </p>
+                          <p className="text-sm text-red-600">
+                            <strong>Overdue since:</strong>{" "}
                             {task.deadline
                               ? format(new Date(task.deadline), "PPPpp")
                               : "N/A"}
@@ -730,227 +740,233 @@ const DashboardPage = () => {
       </div>
 
       {/* Create Task Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white backdrop-blur-md text-gray-800 rounded-xl p-6 w-full max-w-md relative shadow-xl border border-gray-200">
-            <h2 className="text-2xl font-semibold mb-6 text-gray-900 text-center">
-              Create New Task {nextTaskId ? <span className="text-indigo-600">CYN-0{nextTaskId}</span> : ""}
-            </h2>
-            {isModalDataLoading ? (
-              <div className="text-center py-8">
-                <p className="text-gray-600">Loading data...</p>
-              </div>
-            ) : modalFetchError ? (
-              <div className="text-center py-8">
-                <p className="text-red-600">{modalFetchError}</p>
-                <Button onClick={() => setIsModalOpen(false)}>Close</Button>
-              </div>
-            ) : (
-              <form onSubmit={handleCreateTask} className="space-y-5">
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700">
-                    Title
-                  </label>
-                  <Input
-                    className="bg-white"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    required
-                  />
+      {
+        isModalOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white backdrop-blur-md text-gray-800 rounded-xl p-6 w-full max-w-md relative shadow-xl border border-gray-200">
+              <h2 className="text-2xl font-semibold mb-6 text-gray-900 text-center">
+                Create New Task {nextTaskId ? <span className="text-indigo-600">CYN-0{nextTaskId}</span> : ""}
+              </h2>
+              {isModalDataLoading ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">Loading data...</p>
                 </div>
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700">
-                    Description
-                  </label>
-                  <Textarea
-                    className="bg-white"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    required
-                  />
+              ) : modalFetchError ? (
+                <div className="text-center py-8">
+                  <p className="text-red-600">{modalFetchError}</p>
+                  <Button onClick={() => setIsModalOpen(false)}>Close</Button>
                 </div>
-                <div className="gap-2">
-                  <label className="block mb-2 font-medium text-gray-700">
-                    Priority
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {priorities.map((p) => (
-                      <label
-                        key={p.id}
-                        className={`flex text-xs items-center gap-2 px-2 py-2 rounded-lg border cursor-pointer ${selectedPriorityId === p.id ? "border-indigo-500 bg-indigo-50" : "border-gray-300 bg-white"}`}
-                      >
-                        <input
-                          type="radio"
-                          name="priority"
-                          value={p.id}
-                          checked={selectedPriorityId === p.id}
-                          onChange={() => setSelectedPriorityId(p.id)}
-                          className="accent-indigo-600"
-                        />
-                        <span
-                          className="h-3 w-3 rounded-full"
-                          style={{ backgroundColor: p.color }}
-                        />
-                        <span className="text-xs text-gray-700">{p.name}</span>
-                      </label>
-                    ))}
+              ) : (
+                <form onSubmit={handleCreateTask} className="space-y-5">
+                  <div>
+                    <label className="block mb-2 font-medium text-gray-700">
+                      Title
+                    </label>
+                    <Input
+                      className="bg-white"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      required
+                    />
                   </div>
-                </div>
-                <div className="w-full">
-                  <label className="block mb-2 font-medium text-gray-700">
-                    Deadline
+                  <div>
+                    <label className="block mb-2 font-medium text-gray-700">
+                      Description
+                    </label>
+                    <Textarea
+                      className="bg-white"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="gap-2">
+                    <label className="block mb-2 font-medium text-gray-700">
+                      Priority
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {priorities.map((p) => (
+                        <label
+                          key={p.id}
+                          className={`flex text-xs items-center gap-2 px-2 py-2 rounded-lg border cursor-pointer ${selectedPriorityId === p.id ? "border-indigo-500 bg-indigo-50" : "border-gray-300 bg-white"}`}
+                        >
+                          <input
+                            type="radio"
+                            name="priority"
+                            value={p.id}
+                            checked={selectedPriorityId === p.id}
+                            onChange={() => setSelectedPriorityId(p.id)}
+                            className="accent-indigo-600"
+                          />
+                          <span
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: p.color }}
+                          />
+                          <span className="text-xs text-gray-700">{p.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="w-full">
+                    <label className="block mb-2 font-medium text-gray-700">
+                      Deadline
+                    </label>
+                    <Input
+                      type="datetime-local"
+                      className="bg-white"
+                      value={deadline}
+                      onChange={(e) => setDeadline(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-2 font-medium text-gray-700">
+                      Department
+                    </label>
+                    <Input
+                      value={managerDeptName}
+                      disabled
+                      className="bg-gray-100 border-gray-200 text-gray-600 font-medium cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-2 font-medium text-gray-700">
+                      Assign To
+                    </label>
+                    <MultiSelect
+                      options={allUsers
+                        .filter(
+                          (u) =>
+                            u.departmentId === selectedDeptId && u.approved && u.role !== "MANAGER",
+                        )
+                        .map((user) => ({
+                          id: user.id,
+                          name: `${user.name} (${user.role || 'EMPLOYEE'})`
+                        }))}
+                      selectedIds={selectedUserIds}
+                      onChange={setSelectedUserIds}
+                      placeholder={selectedDeptId ? "Select Users..." : "Loading Department..."}
+                      className={!selectedDeptId ? "opacity-50 pointer-events-none" : ""}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsModalOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                      Create Task
+                    </Button>
+                  </div>
+                  {error && (
+                    <p className="text-red-600 text-sm flex items-center justify-center">
+                      {error}
+                    </p>
+                  )}
+                  {success && (
+                    <p className="flex items-center justify-center text-green-600 text-sm">
+                      {success}
+                    </p>
+                  )}
+                </form>
+              )}
+            </div>
+          </div>
+        )
+      }
+
+      {/* Add Department Modal */}
+      {
+        isAddDeptModalOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white text-gray-800 rounded-xl p-6 w-full max-w-sm relative shadow-xl border border-gray-200">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Add Department</h2>
+                <button
+                  onClick={() => setIsAddDeptModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateDepartment} className="space-y-5">
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Department Name
                   </label>
                   <Input
-                    type="datetime-local"
-                    className="bg-white"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
+                    className="bg-gray-50 border-gray-200"
+                    value={newDeptName}
+                    onChange={(e) => setNewDeptName(e.target.value)}
+                    placeholder="e.g. Engineering"
+                    autoFocus
                     required
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700">
-                    Department
-                  </label>
-                  <Input
-                    value={managerDeptName}
-                    disabled
-                    className="bg-gray-100 border-gray-200 text-gray-600 font-medium cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700">
-                    Assign To
-                  </label>
-                  <MultiSelect
-                    options={allUsers
-                      .filter(
-                        (u) =>
-                          u.departmentId === selectedDeptId && u.approved && u.role !== "MANAGER",
-                      )
-                      .map((user) => ({
-                        id: user.id,
-                        name: `${user.name} (${user.role || 'EMPLOYEE'})`
-                      }))}
-                    selectedIds={selectedUserIds}
-                    onChange={setSelectedUserIds}
-                    placeholder={selectedDeptId ? "Select Users..." : "Loading Department..."}
-                    className={!selectedDeptId ? "opacity-50 pointer-events-none" : ""}
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <div className="flex justify-end gap-3 pt-2">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={() => setIsAddDeptModalOpen(false)}
+                    className="w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white w-full sm:w-auto"
                   >
-                    Create Task
+                    Create
                   </Button>
                 </div>
-                {error && (
-                  <p className="text-red-600 text-sm flex items-center justify-center">
-                    {error}
-                  </p>
+
+                {deptError && (
+                  <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center justify-center mt-2">
+                    <span className="font-medium mr-1">Error:</span> {deptError}
+                  </div>
                 )}
-                {success && (
-                  <p className="flex items-center justify-center text-green-600 text-sm">
-                    {success}
-                  </p>
+                {deptSuccess && (
+                  <div className="p-3 bg-green-50 text-green-700 text-sm rounded-lg flex items-center justify-center mt-2 font-medium">
+                    {deptSuccess}
+                  </div>
                 )}
               </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Add Department Modal */}
-      {isAddDeptModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white text-gray-800 rounded-xl p-6 w-full max-w-sm relative shadow-xl border border-gray-200">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Add Department</h2>
-              <button
-                onClick={() => setIsAddDeptModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
-
-            <form onSubmit={handleCreateDepartment} className="space-y-5">
-              <div>
-                <label className="block mb-2 text-sm font-medium text-gray-700">
-                  Department Name
-                </label>
-                <Input
-                  className="bg-gray-50 border-gray-200"
-                  value={newDeptName}
-                  onChange={(e) => setNewDeptName(e.target.value)}
-                  placeholder="e.g. Engineering"
-                  autoFocus
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsAddDeptModalOpen(false)}
-                  className="w-full sm:w-auto"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white w-full sm:w-auto"
-                >
-                  Create
-                </Button>
-              </div>
-
-              {deptError && (
-                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center justify-center mt-2">
-                  <span className="font-medium mr-1">Error:</span> {deptError}
-                </div>
-              )}
-              {deptSuccess && (
-                <div className="p-3 bg-green-50 text-green-700 text-sm rounded-lg flex items-center justify-center mt-2 font-medium">
-                  {deptSuccess}
-                </div>
-              )}
-            </form>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Task Detail Modal */}
-      {selectedTaskId && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-sm"
-          onClick={() => setSelectedTaskId(null)}
-        >
+      {
+        selectedTaskId && (
           <div
-            className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-sm"
+            onClick={() => setSelectedTaskId(null)}
           >
-            <button
-              onClick={() => setSelectedTaskId(null)}
-              className="absolute top-4 right-4 z-50 bg-white/80 backdrop-blur-sm  text-gray-500 hover:text-red-600 text-lg font-semibold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
+            <div
+              className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
             >
-              ✕
-            </button>
-            <ClientTaskDetail taskId={selectedTaskId} />
+              <button
+                onClick={() => setSelectedTaskId(null)}
+                className="absolute top-4 right-4 z-50 bg-white/80 backdrop-blur-sm  text-gray-500 hover:text-red-600 text-lg font-semibold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
+              >
+                ✕
+              </button>
+              <ClientTaskDetail taskId={selectedTaskId} />
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </div>
   );
 };

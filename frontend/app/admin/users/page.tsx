@@ -488,7 +488,7 @@ export default function UsersTab() {
             {pending.length === 0 ? (
               <div className="text-center py-8 text-gray-500 text-sm flex flex-col items-center">
                 <CheckCircle2 className="w-8 h-8 text-gray-300 mb-2" />
-                No pending user requests. You're all caught up!
+                No pending user requests. You&apos;re all caught up!
               </div>
             ) : (
               <div className="space-y-3">

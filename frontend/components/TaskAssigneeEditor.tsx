@@ -9,6 +9,7 @@ interface User {
     id: string;
     name: string;
     role?: string;
+    departmentId?: string | null;
 }
 
 interface TaskAssigneeEditorProps {
@@ -16,7 +17,7 @@ interface TaskAssigneeEditorProps {
     currentAssignees: { id: string; name: string }[];
     token: string | null;
     isActive: boolean;
-    onAssigneesUpdated: (newAssignees: any[]) => void;
+    onAssigneesUpdated: (newAssignees: { id: string; name: string }[]) => void;
 }
 
 export default function TaskAssigneeEditor({
@@ -76,7 +77,7 @@ export default function TaskAssigneeEditor({
 
             let fetchedUsers = usersData.users || [];
             if (decoded?.role === "MANAGER") {
-                fetchedUsers = fetchedUsers.filter((u: any) => u.role !== "MANAGER");
+                fetchedUsers = fetchedUsers.filter((u: User) => u.role !== "MANAGER");
             }
             setUsers(fetchedUsers);
 
@@ -84,8 +85,8 @@ export default function TaskAssigneeEditor({
                 const deptsData = await deptsRes.json();
                 setDepartments(deptsData.departments || []);
             }
-        } catch (err: any) {
-            setError(err.message || "Failed to load data.");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to load data.");
         } finally {
             setIsLoading(false);
         }
@@ -125,8 +126,8 @@ export default function TaskAssigneeEditor({
             const data = await res.json();
             onAssigneesUpdated(data.task.assignees);
             setIsEditing(false);
-        } catch (err: any) {
-            setError(err.message || "Failed to save.");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to save.");
         } finally {
             setIsSaving(false);
         }
@@ -192,7 +193,7 @@ export default function TaskAssigneeEditor({
                                 <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Select Users</label>
                                 <MultiSelect
                                     options={users
-                                        .filter(user => selectedDeptId === "all" || (user as any).departmentId === selectedDeptId)
+                                        .filter(user => selectedDeptId === "all" || user.departmentId === selectedDeptId)
                                         .map((user) => ({
                                             id: user.id,
                                             name: `${user.name} (${user.role || 'EMPLOYEE'})`
