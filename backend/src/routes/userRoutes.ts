@@ -33,12 +33,20 @@ router.get(
   "/",
   authenticateJWT,
   asyncHandler(async (req, res) => {
+    const userRole = (req as any).user?.role;
+    const userDeptId = (req as any).user?.departmentId;
+
     let { department } = req.query;
     if (Array.isArray(department)) {
       department = department[0];
     }
 
-    const where = department ? { department: { name: department } } : {};
+    let where: any = department ? { department: { name: department } } : {};
+
+    // If user is a MANAGER, force filter to their own department
+    if (userRole === "MANAGER") {
+      where = { ...where, departmentId: userDeptId };
+    }
 
     const users = await prisma.user.findMany({
       where,
@@ -70,22 +78,22 @@ router.get(
   })
 );
 
-router.get("/pending", authenticateJWT, allowRoles("ADMIN"), getPendingUsers);
-router.patch("/approve/:userId", authenticateJWT, allowRoles("ADMIN"), approveUser);
-router.delete("/decline/:userId", authenticateJWT, allowRoles("ADMIN"), declineUser);
-router.delete("/delete/:userId", authenticateJWT, allowRoles("ADMIN"), deleteUser);
+router.get("/pending", authenticateJWT, allowRoles("ADMIN", "MANAGER"), getPendingUsers);
+router.patch("/approve/:userId", authenticateJWT, allowRoles("ADMIN", "MANAGER"), approveUser);
+router.delete("/decline/:userId", authenticateJWT, allowRoles("ADMIN", "MANAGER"), declineUser);
+router.delete("/delete/:userId", authenticateJWT, allowRoles("ADMIN", "MANAGER"), deleteUser);
 router.post("/logout", logout);
 router.patch(
   "/update/:userId",
   authenticateJWT,
-  allowRoles("ADMIN"),
+  allowRoles("ADMIN", "MANAGER"),
   asyncHandler(updateUser as unknown as RequestHandler)
 );
 
 router.post(
   "/create",
   authenticateJWT,
-  allowRoles("ADMIN"),
+  allowRoles("ADMIN", "MANAGER"),
   asyncHandler(createUser as unknown as RequestHandler)
 );
 

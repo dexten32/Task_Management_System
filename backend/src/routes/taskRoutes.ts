@@ -11,6 +11,7 @@ import {
   getTaskById,
   getDashboardAggregates,
   getNextTaskId,
+  updateTaskAssignees,
 } from "../controllers/taskController";
 import { authenticateJWT } from "../middlewares/authMiddleware";
 import { allowRoles } from "../middlewares/roleMiddleware";
@@ -71,6 +72,14 @@ router.patch(
   "/:taskId/status",
   authenticateJWT,
   asyncHandler(updateTaskStatus),
+);
+
+// UPDATE ASSIGNEES
+router.patch(
+  "/:taskId/assignees",
+  authenticateJWT,
+  allowRoles("ADMIN", "MANAGER"),
+  asyncHandler(updateTaskAssignees),
 );
 
 export default router;

@@ -135,7 +135,7 @@ export default function PreviousTasksSection() {
   );
 
   return (
-    <div className="p-6 bg-blue-50 min-h-screen">
+    <div className="p-6 min-h-screen">
       <h2 className="text-3xl font-bold mb-6 text-gray-800">
         Completed & Delayed Tasks
       </h2>
@@ -305,12 +305,12 @@ export default function PreviousTasksSection() {
           onClick={() => setSelectedTaskId(null)}
         >
           <div
-            className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl h-[90vh] overflow-y-auto relative animate-fadeIn"
+            className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative animate-fadeIn"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setSelectedTaskId(null)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-red-600 text-lg font-semibold"
+              className="absolute top-4 right-4 z-50 bg-white/80 backdrop-blur-sm  text-gray-500 hover:text-red-600 text-lg font-semibold"
             >
               ✕
             </button>

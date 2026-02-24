@@ -45,7 +45,6 @@ interface Role {
 }
 
 export default function UsersTab() {
-  const [pending, setPending] = useState<User[]>([]);
   const [employeesList, setEmployeesList] = useState<User[]>([]);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -56,12 +55,14 @@ export default function UsersTab() {
 
   // Add User State
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [managerDeptId, setManagerDeptId] = useState<string>("");
+  const [managerDeptName, setManagerDeptName] = useState<string>("");
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
     password: "",
     departmentId: "",
-    role: "",
+    role: "EMPLOYEE",
   });
 
   const hardcodedRoles: Role[] = [
@@ -81,25 +82,31 @@ export default function UsersTab() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [deptRes, usersRes, pendingRes] = await Promise.all([
+        const [deptRes, usersRes, meRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/departments`, {
             headers: getAuthHeaders(),
           }),
           fetch(`${API_BASE_URL}/api/users`, { headers: getAuthHeaders() }),
-          fetch(`${API_BASE_URL}/api/users/pending`, {
+          fetch(`${API_BASE_URL}/api/users/me`, {
             headers: getAuthHeaders(),
           }),
         ]);
 
-        if (!deptRes.ok || !usersRes.ok || !pendingRes.ok)
+        if (!deptRes.ok || !usersRes.ok || !meRes.ok)
           throw new Error("One or more fetches failed");
 
         const deptData = await deptRes.json();
         const usersData = await usersRes.json();
-        const pendingData = await pendingRes.json();
+        const meData = await meRes.json();
 
         setDepartments(deptData.departments || []);
-        setPending(pendingData.users || []);
+        if (meData?.departmentId) {
+          setManagerDeptId(meData.departmentId);
+          setNewUser(prev => ({ ...prev, departmentId: meData.departmentId }));
+          const dept = deptData.departments?.find((d: Department) => d.id === meData.departmentId);
+          if (dept) setManagerDeptName(dept.name);
+        }
+
         setEmployeesList(usersData.users.filter((u: User) => u.approved));
         setError("");
       } catch (err) {
@@ -110,30 +117,6 @@ export default function UsersTab() {
 
     fetchData();
   }, []);
-
-  const handleAccept = async (userId: string) => {
-    try {
-      await fetch(`${API_BASE_URL}/api/users/approve/${userId}`, {
-        method: "PATCH",
-        headers: getAuthHeaders(),
-      });
-      setPending((prev) => prev.filter((u) => u.id !== userId));
-    } catch (err) {
-      setError("Error approving user.");
-    }
-  };
-
-  const handleDecline = async (userId: string) => {
-    try {
-      await fetch(`${API_BASE_URL}/api/users/decline/${userId}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
-      setPending((prev) => prev.filter((u) => u.id !== userId));
-    } catch (err) {
-      setError("Error declining user.");
-    }
-  };
 
   const handleSave = async (userId: string) => {
     try {
@@ -192,8 +175,8 @@ export default function UsersTab() {
         name: "",
         email: "",
         password: "",
-        departmentId: "",
-        role: "",
+        departmentId: managerDeptId, // Reset to manager's dept
+        role: "EMPLOYEE",
       });
       setError("");
     } catch (err: unknown) {
@@ -268,27 +251,11 @@ export default function UsersTab() {
                   Dept
                 </Label>
                 <div className="col-span-3">
-                  <SelectField
-                    value={newUser.departmentId}
-                    onValueChange={(val) =>
-                      setNewUser({ ...newUser, departmentId: val })
-                    }
-                  >
-                    <SelectTrigger className="w-full border-gray-300 bg-white text-gray-900">
-                      <SelectValue placeholder="Select Department" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
-                      {departments.map((dept) => (
-                        <SelectItem
-                          key={dept.id}
-                          value={dept.id}
-                          className="text-gray-900 hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
-                        >
-                          {dept.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </SelectField>
+                  <Input
+                    value={managerDeptName}
+                    disabled
+                    className="w-full bg-gray-100 border-gray-200 text-gray-600 font-medium cursor-not-allowed"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -296,27 +263,11 @@ export default function UsersTab() {
                   Role
                 </Label>
                 <div className="col-span-3">
-                  <SelectField
-                    value={newUser.role}
-                    onValueChange={(val) =>
-                      setNewUser({ ...newUser, role: val })
-                    }
-                  >
-                    <SelectTrigger className="w-full border-gray-300 bg-white text-gray-900">
-                      <SelectValue placeholder="Select Role" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
-                      {hardcodedRoles.map((role) => (
-                        <SelectItem
-                          key={role.id}
-                          value={role.name}
-                          className="text-gray-900 hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
-                        >
-                          {role.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </SelectField>
+                  <Input
+                    value="EMPLOYEE"
+                    disabled
+                    className="w-full bg-gray-100 border-gray-200 text-gray-600 font-medium cursor-not-allowed"
+                  />
                 </div>
               </div>
             </div>
@@ -354,27 +305,11 @@ export default function UsersTab() {
                   {editingUserId === user.id ? (
                     <div className="flex flex-col gap-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <SelectField
-                          value={editedUser.departmentId || ""}
-                          onValueChange={(val) =>
-                            setEditedUser({
-                              ...editedUser,
-                              departmentId: val,
-                            })
-                          }
-                        >
-                          <SelectTrigger className="w-full bg-gray-50 border-gray-200 text-gray-900">
-                            <SelectValue placeholder="Department" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border-gray-200">
-                            <SelectItem value="none">No Department</SelectItem>
-                            {departments.map((dept) => (
-                              <SelectItem key={dept.id} value={dept.id}>
-                                {dept.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </SelectField>
+                        <Input
+                          value={managerDeptName}
+                          disabled
+                          className="w-full bg-gray-100 border-gray-200 text-gray-600 cursor-not-allowed"
+                        />
 
                         <SelectField
                           value={editedUser.role || ""}
@@ -386,7 +321,7 @@ export default function UsersTab() {
                             <SelectValue placeholder="Role" />
                           </SelectTrigger>
                           <SelectContent className="bg-white border-gray-200">
-                            {hardcodedRoles.map((role) => (
+                            {hardcodedRoles.filter(r => r.name !== "ADMIN").map((role) => (
                               <SelectItem key={role.id} value={role.name}>
                                 {role.name}
                               </SelectItem>
@@ -469,107 +404,6 @@ export default function UsersTab() {
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Pending Section */}
-        <Card className="flex-1 xl:max-w-md rounded-xl shadow-lg bg-white/90 backdrop-blur-sm border border-gray-200">
-          <CardHeader className="p-4 md:p-6 border-b border-gray-100 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg md:text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-500" /> Pending Requests
-            </CardTitle>
-            {pending.length > 0 && (
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-[10px] font-bold text-red-600">
-                {pending.length}
-              </span>
-            )}
-          </CardHeader>
-          <CardContent className="p-4 md:p-6">
-            {pending.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 text-sm flex flex-col items-center">
-                <CheckCircle2 className="w-8 h-8 text-gray-300 mb-2" />
-                No pending user requests. You're all caught up!
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {pending.map((user) => {
-                  const dept = departments.find((d) => d.id === user.departmentId);
-                  return (
-                    <motion.div
-                      key={user.id}
-                      layout
-                      onClick={() =>
-                        setExpandedUser(expandedUser === user.id ? null : user.id)
-                      }
-                      className="bg-white rounded-xl border border-amber-100 shadow-sm hover:shadow hover:border-amber-300 p-4 cursor-pointer transition-all duration-200"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 shrink-0 bg-amber-50 rounded-full flex items-center justify-center">
-                            <UserIcon className="w-4 h-4 text-amber-500" />
-                          </div>
-                          <div>
-                            <span className="font-semibold text-gray-900 block leading-tight">
-                              {user.name}
-                            </span>
-                            <span className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                              <Building className="w-3 h-3" />
-                              {dept ? dept.name : "N/A"}
-                            </span>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </div>
-
-                      <AnimatePresence>
-                        {expandedUser === user.id && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="bg-gray-50 border border-gray-100 mt-4 rounded-lg p-4">
-                              <div className="space-y-2 text-sm text-gray-600">
-                                <p className="flex items-center gap-2">
-                                  <Mail className="w-4 h-4 text-gray-400" /> {user.email}
-                                </p>
-                              </div>
-                              <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
-                                <Button
-                                  size="sm"
-                                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium"
-                                  onClick={(e: React.MouseEvent) => {
-                                    e.stopPropagation();
-                                    handleAccept(user.id);
-                                  }}
-                                >
-                                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> Approve
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 font-medium"
-                                  onClick={(e: React.MouseEvent) => {
-                                    e.stopPropagation();
-                                    handleDecline(user.id);
-                                  }}
-                                >
-                                  <XCircle className="w-4 h-4 mr-1.5" /> Decline
-                                </Button>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

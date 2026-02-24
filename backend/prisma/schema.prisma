@@ -3,24 +3,24 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id              String      @id @default(cuid())
-  name            String
-  email           String      @unique
-  role            Role        @default(EMPLOYEE)
-  approved        Boolean     @default(false)
-  isDeleted       Boolean     @default(false)
-  departmentId    String?
-  createdAt       DateTime    @default(now())
-  password        String?
-  assignedByTasks Task[]      @relation("assignedByTasks")
-  assignedTaskAssignments Task[] @relation("TaskAssignees")
-  taskLogs        TaskLog[]
-  department      Department? @relation(fields: [departmentId], references: [id])
+  id                      String      @id @default(cuid())
+  name                    String
+  email                   String      @unique
+  role                    Role        @default(EMPLOYEE)
+  approved                Boolean     @default(false)
+  isDeleted               Boolean     @default(false)
+  departmentId            String?
+  createdAt               DateTime    @default(now())
+  password                String?
+  assignedByTasks         Task[]      @relation("assignedByTasks")
+  taskLogs                TaskLog[]
+  department              Department? @relation(fields: [departmentId], references: [id])
+  assignedTaskAssignments Task[]      @relation("TaskAssignees")
 }
 
 model Priority {
@@ -34,23 +34,19 @@ model Priority {
 }
 
 model Task {
-  id          String     @id @default(cuid())
-  readableId  Int        @unique
-  title       String
-  description String
-  deadline    DateTime
-  status      TaskStatus @default(PENDING)
-  createdAt   DateTime   @default(now())
-
+  id           String     @id @default(cuid())
+  title        String
+  description  String
+  deadline     DateTime
+  status       TaskStatus @default(PENDING)
+  createdAt    DateTime   @default(now())
   assignedById String
-  assignedBy   User @relation("assignedByTasks", fields: [assignedById], references: [id])
-
-  assignees User[] @relation("TaskAssignees")
-
-  priorityId Int?
-  priority   Priority? @relation(fields: [priorityId], references: [id])
-
-  logs TaskLog[]
+  priorityId   Int?
+  readableId   Int        @unique
+  assignedBy   User       @relation("assignedByTasks", fields: [assignedById], references: [id])
+  priority     Priority?  @relation(fields: [priorityId], references: [id])
+  logs         TaskLog[]
+  assignees    User[]     @relation("TaskAssignees")
 }
 
 model TaskLog {

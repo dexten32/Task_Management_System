@@ -9,7 +9,7 @@ interface Log {
   id: string;
   description: string;
   createdAt: string;
-  user?: { name: string };
+  user?: { name: string; role?: string };
 }
 
 interface Task {
@@ -142,8 +142,13 @@ export default function TaskLogDisplay({
                   <div className="bg-white rounded-lg p-3 border border-slate-100 shadow-sm group-hover:border-slate-200 transition-colors">
                     <div className="flex items-start justify-between gap-4 mb-1">
                       <div className="flex flex-col">
-                        <span className="text-xs font-bold text-slate-700">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                           {log.user?.name || "System"}
+                          {log.user?.role && (
+                            <span className="text-[9px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-sm border border-slate-200 tracking-wider">
+                              {log.user.role}
+                            </span>
+                          )}
                         </span>
                         <span
                           className={`font-mono text-[10px] font-semibold ${isOnTime ? "text-green-600" : "text-red-600"}`}

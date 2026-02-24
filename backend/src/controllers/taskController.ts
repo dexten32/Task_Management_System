@@ -65,6 +65,22 @@ export const assignTask = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "At least one assignee is required" });
     }
 
+    const reqUser = req.user as any;
+    if (reqUser.role === "MANAGER") {
+      const managerDeptId = reqUser.departmentId;
+      if (!managerDeptId) {
+        return res.status(403).json({ message: "Manager does not have a department." });
+      }
+      // Fetch assignees to check their department
+      const usersToAssign = await prisma.user.findMany({
+        where: { id: { in: assigneeIds } }
+      });
+      const invalidUsers = usersToAssign.filter(u => u.departmentId !== managerDeptId);
+      if (invalidUsers.length > 0) {
+        return res.status(403).json({ message: "Managers can only assign tasks to users in their department." });
+      }
+    }
+
     const deadlineDate = new Date(deadline);
     if (isNaN(deadlineDate.getTime())) {
       return res.status(400).json({ message: "Invalid deadline format" });
@@ -154,11 +170,22 @@ export const getTasksController = async (req: Request, res: Response) => {
 };
 
 export const getRecentTasks = async (req: Request, res: Response) => {
-  const adminId = req.user?.id;
+  const reqUser = req.user as any;
+  const adminId = reqUser?.id;
 
   try {
+    let whereClause: any = { assignedById: adminId };
+    if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
+      whereClause = {
+        OR: [
+          { assignedById: adminId },
+          { assignees: { some: { departmentId: reqUser.departmentId } } }
+        ]
+      };
+    }
+
     const tasks = await prisma.task.findMany({
-      where: { assignedById: adminId },
+      where: whereClause,
       orderBy: { createdAt: "desc" },
       include: {
         priority: {
@@ -221,7 +248,8 @@ export const getMyTasks = async (req: Request, res: Response) => {
 
 export const getDelayedTasks = async (req: Request, res: Response) => {
   try {
-    const adminId = req.user?.id;
+    const reqUser = req.user as any;
+    const adminId = reqUser?.id;
     if (!adminId) {
       return res.status(400).json({ error: "Missing adminId" });
     }
@@ -231,22 +259,28 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
     );
     const assigneeId = req.query.userId as string | undefined;
     const departmentId = req.query.departmentId as string | undefined;
+
+    let baseWhere: any = { assignedById: adminId };
+    if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
+      baseWhere = {
+        OR: [
+          { assignedById: adminId },
+          { assignees: { some: { departmentId: reqUser.departmentId } } }
+        ]
+      };
+    }
+
     const tasks = await prisma.task.findMany({
       where: {
-        assignedById: adminId,
-        deadline: { lt: new Date() },
-        status: {
-          in: [TaskStatus.ACTIVE, TaskStatus.DELAYED],
-        },
-        ...(assigneeId && { assignees: { some: { id: assigneeId } } }), // Updated to check assignees
-        ...(departmentId &&
-          !assigneeId && {
-          assignees: {
-            some: {
-              departmentId,
-            }
-          },
-        }),
+        AND: [
+          baseWhere,
+          {
+            deadline: { lt: new Date() },
+            status: { in: [TaskStatus.ACTIVE, TaskStatus.DELAYED] },
+            ...(assigneeId && { assignees: { some: { id: assigneeId } } }),
+            ...(departmentId && !assigneeId && { assignees: { some: { departmentId } } }),
+          }
+        ]
       },
       take: limit,
       orderBy: {
@@ -341,7 +375,8 @@ export const getPreviousTasks = async (req: Request, res: Response) => {
 };
 
 export const getTaskLimit = async (req: Request, res: Response) => {
-  const adminId = req.user?.id;
+  const reqUser = req.user as any;
+  const adminId = reqUser?.id;
   const limit = Math.min(
     req.query.limit ? parseInt(req.query.limit as string, 10) : 3,
     3,
@@ -352,18 +387,26 @@ export const getTaskLimit = async (req: Request, res: Response) => {
   if (!adminId) {
     return res.status(400).json({ error: "Missing adminId" });
   }
+
+  let baseWhere: any = { assignedById: adminId };
+  if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
+    baseWhere = {
+      OR: [
+        { assignedById: adminId },
+        { assignees: { some: { departmentId: reqUser.departmentId } } }
+      ]
+    };
+  }
+
   const tasks = await prisma.task.findMany({
     where: {
-      assignedById: adminId,
-      ...(assigneeId && { assignees: { some: { id: assigneeId } } }), // Updated
-      ...(departmentId &&
-        !assigneeId && {
-        assignees: {
-          some: {
-            departmentId,
-          }
-        },
-      }),
+      AND: [
+        baseWhere,
+        {
+          ...(assigneeId && { assignees: { some: { id: assigneeId } } }),
+          ...(departmentId && !assigneeId && { assignees: { some: { departmentId } } }),
+        }
+      ]
     },
     take: limit,
     orderBy: {
@@ -428,9 +471,7 @@ export const getTaskById = async (
             createdAt: "asc",
           },
           include: {
-            user: {
-              select: { name: true },
-            },
+            user: { select: { name: true, role: true } },
           },
         },
         assignedBy: true,
@@ -466,7 +507,8 @@ export const getTaskById = async (
 };
 
 export const getDashboardAggregates = async (req: Request, res: Response) => {
-  const adminId = req.user?.id;
+  const reqUser = req.user as any;
+  const adminId = reqUser?.id;
   if (!adminId) {
     return res.status(400).json({ error: "Missing adminId" });
   }
@@ -475,12 +517,25 @@ export const getDashboardAggregates = async (req: Request, res: Response) => {
     const assigneeId = req.query.userId as string | undefined;
     const departmentId = req.query.departmentId as string | undefined;
 
+    let baseManagerWhere: any = { assignedById: adminId };
+    if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
+      baseManagerWhere = {
+        OR: [
+          { assignedById: adminId },
+          { assignees: { some: { departmentId: reqUser.departmentId } } }
+        ]
+      };
+    }
+
     const baseWhere: Prisma.TaskWhereInput = {
-      assignedById: adminId,
-      ...(assigneeId && { assignees: { some: { id: assigneeId } } }),
-      ...(departmentId &&
-        !assigneeId && { assignees: { some: { department: { id: departmentId } } } }),
-    };
+      AND: [
+        baseManagerWhere,
+        {
+          ...(assigneeId && { assignees: { some: { id: assigneeId } } }),
+          ...(departmentId && !assigneeId && { assignees: { some: { departmentId } } }),
+        }
+      ]
+    } as any;
     const now = new Date();
     const [total, active, delayed, completed] = await Promise.all([
       prisma.task.count({ where: baseWhere }),
@@ -515,5 +570,43 @@ export const getDashboardAggregates = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("Error in getDashboardAggregates:", error);
     res.status(500).json({ message: "Failed to fetch aggregates", error: error.message });
+  }
+};
+export const updateTaskAssignees = async (req: Request, res: Response) => {
+  const { taskId } = req.params;
+  const { assignees } = req.body;
+  if (!Array.isArray(assignees)) return res.status(400).json({ error: 'assignees must be an array of IDs' });
+
+  try {
+    const task = await prisma.task.findUnique({ where: { id: taskId }, include: { assignees: true } });
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    const reqUser = req.user as any;
+    if (!reqUser || (reqUser.role !== 'MANAGER' && reqUser.role !== 'ADMIN')) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    if (reqUser.role === 'MANAGER') {
+      const usersToAssign = await prisma.user.findMany({ where: { id: { in: assignees } } });
+      const invalidUsers = usersToAssign.filter((u: any) => u.departmentId !== reqUser.departmentId);
+      if (invalidUsers.length > 0) {
+        return res.status(403).json({ message: 'Managers can only assign users in their department.' });
+      }
+    }
+
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: { assignees: { set: assignees.map((id: string) => ({ id })) } },
+      include: {
+        assignees: { select: { id: true, name: true, department: { select: { name: true, id: true } } } },
+        priority: { select: { code: true, name: true, color: true } },
+        assignedBy: { select: { name: true, id: true } }
+      }
+    });
+
+    return res.status(200).json({ message: 'Assignees updated', task: updatedTask });
+  } catch (error) {
+    console.error('Failed to update task assignees:', error);
+    return res.status(500).json({ error: 'Failed to update task assignees' });
   }
 };

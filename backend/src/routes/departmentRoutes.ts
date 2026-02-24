@@ -17,4 +17,17 @@ router.get("/", authenticateJWT, async (req, res) => {
   }
 });
 
+// POST /api/departments
+// Removed authenticateJWT to allow creation while signing up before approval
+router.post("/", authenticateJWT, async (req, res) => {
+  // Use dynamically imported createDepartment to prevent issues if not defined
+  try {
+    const { createDepartment } = await import("../controllers/departmentController");
+    await createDepartment(req, res);
+  } catch (e) {
+    console.error("Failed to load department controller", e);
+    res.status(500).json({ error: "Server configuration error" });
+  }
+});
+
 export default router;

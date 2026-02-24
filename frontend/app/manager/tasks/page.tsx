@@ -114,15 +114,12 @@ function useLoggedInAdmin() {
   return adminInfo;
 }
 
-export default function AdminTasksPage() {
+export default function ManagerTasksPage() {
   const loggedInAdmin = useLoggedInAdmin();
   const loggedInAdminId = loggedInAdmin?.id;
 
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("All");
   const [selectedUser, setSelectedUser] = useState<string>("All");
-  const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -135,46 +132,13 @@ export default function AdminTasksPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("All");
 
   useEffect(() => {
-    async function fetchDepartments() {
-      setLoadingDepartments(true);
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("Authentication token not found.");
-        const res = await fetch(`${API_BASE_URL}/api/departments`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to fetch departments");
-        const data = await res.json();
-        setDepartments(data.departments);
-      } catch (error: unknown) {
-        console.error("Error fetching departments:", error);
-        if (error instanceof Error) {
-          setError(error.message || "Failed to load departments.");
-        } else {
-          setError(String(error) || "Failed to load departments.");
-        }
-      } finally {
-        setLoadingDepartments(false);
-      }
-    }
-    fetchDepartments();
-  }, []);
-
-  useEffect(() => {
     async function fetchUsers() {
       setLoadingUsers(true);
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Authentication token not found.");
 
-        const url =
-          selectedDepartment === "All"
-            ? `${API_BASE_URL}/api/users`
-            : `${API_BASE_URL}/api/users?department=${encodeURIComponent(
-              selectedDepartment,
-            )}`;
-
-        const res = await fetch(url, {
+        const res = await fetch(`${API_BASE_URL}/api/users`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("Failed to fetch users");
@@ -199,7 +163,7 @@ export default function AdminTasksPage() {
       }
     }
     fetchUsers();
-  }, [selectedDepartment]);
+  }, []);
 
   useEffect(() => {
     const fetchPriorities = async () => {
@@ -248,7 +212,9 @@ export default function AdminTasksPage() {
           deadline: task.deadline,
           assignedTo: task.assignedTo || { id: "", name: "N/A" },
           assignees: task.assignees || [],
-          department: task.assignedTo?.department?.name || "N/A",
+          department: task.assignees && task.assignees.length > 0
+            ? task.assignees[0].department?.name || "N/A"
+            : "N/A",
           status: task.status,
           assignedBy: task.assignedBy || { id: "", name: "N/A" },
           priority: task.priority,
@@ -274,9 +240,6 @@ export default function AdminTasksPage() {
   }, [selectedTaskId]);
 
   const filteredTasks = tasks.filter((task) => {
-    const departmentMatch =
-      selectedDepartment === "All" || task.department === selectedDepartment;
-
     const userMatch =
       selectedUser === "All" ||
       task.assignedTo?.name === selectedUser ||
@@ -288,11 +251,11 @@ export default function AdminTasksPage() {
     const statusMatch =
       selectedStatus === "All" || task.status === selectedStatus;
 
-    return departmentMatch && userMatch && priorityMatch && statusMatch;
+    return userMatch && priorityMatch && statusMatch;
   });
 
   return (
-    <div className="min-h-screen text-gray-800 p-8 font-sans rounded-xl relative">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 text-gray-800 p-8 font-sans rounded-xl relative">
       <h1 className="text-3xl font-bold text-gray-900 mb-8 tracking-tight">
         Tasks Assigned by You
       </h1>
@@ -304,36 +267,7 @@ export default function AdminTasksPage() {
       )}
 
       {/* Filters */}
-      <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-        <div className="flex flex-col">
-          <label
-            htmlFor="department"
-            className="block text-sm font-medium text-gray-600 mb-1"
-          >
-            Filter by Department
-          </label>
-          {loadingDepartments ? (
-            <p className="text-sm text-gray-500">Loading...</p>
-          ) : (
-            <SelectField
-              value={selectedDepartment}
-              onValueChange={setSelectedDepartment}
-            >
-              <SelectTrigger className="w-full bg-white border-gray-300">
-                <SelectValue placeholder="All" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All</SelectItem>
-                {departments.map((dep) => (
-                  <SelectItem key={dep.id} value={dep.name}>
-                    {dep.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </SelectField>
-          )}
-        </div>
-
+      <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="flex flex-col">
           <label
             htmlFor="user"

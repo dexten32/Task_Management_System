@@ -81,30 +81,29 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div className="flex h-screen bg-slate-50">
       {/* Mobile Overlay */}
       {isMobile && mobileSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar - Desktop */}
       <div
-        className={`${
-          sidebarOpen ? "w-64" : "w-14"
-        } bg-gradient-to-b from-blue-100 to-indigo-100 text-gray-700 transition-all duration-300 hidden lg:block`}
+        className={`${sidebarOpen ? "w-64" : "w-14"
+          } bg-slate-900 border-r border-slate-800 text-white transition-all duration-300 hidden lg:flex flex-col`}
       >
         <div className="p-4 flex items-center justify-between">
           {sidebarOpen && (
-            <h1 className="text-xl font-bold text-indigo-700">Admin Panel</h1>
+            <h1 className="text-xl font-bold text-white tracking-wide">Admin Panel</h1>
           )}
-          <button onClick={toggleSidebar} className="p-1">
-            <Menu className="h-6 w-6 text-indigo-600" />
+          <button onClick={toggleSidebar} className="p-1 text-slate-400 hover:text-white transition-colors">
+            <Menu className="h-6 w-6" />
           </button>
         </div>
-        <nav className="mt-8">
+        <nav className="mt-8 flex-1">
           <SidebarLink
             href="/admin/dashboard"
             icon={<Home />}
@@ -128,14 +127,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       {/* Sidebar - Mobile (Slide-in) */}
       <div
-        className={`fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-blue-100 to-indigo-100 text-gray-700 z-50 transform transition-transform duration-300 lg:hidden ${
-          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed top-0 left-0 h-full w-64 bg-slate-900 border-r border-slate-800 text-white z-50 transform transition-transform duration-300 lg:hidden ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
-        <div className="p-4 flex items-center justify-between border-b border-indigo-200">
-          <h1 className="text-xl font-bold text-indigo-700">Admin Panel</h1>
-          <button onClick={() => setMobileSidebarOpen(false)} className="p-1">
-            <X className="h-6 w-6 text-indigo-600" />
+        <div className="p-4 flex items-center justify-between border-b border-slate-800">
+          <h1 className="text-xl font-bold text-white tracking-wide">Admin Panel</h1>
+          <button onClick={() => setMobileSidebarOpen(false)} className="p-1 text-slate-400 hover:text-white transition-colors">
+            <X className="h-6 w-6" />
           </button>
         </div>
         <nav className="mt-8" onClick={closeMobileSidebar}>
@@ -161,19 +159,25 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {/* Background Decorators */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-gradient-to-br from-indigo-200/20 to-purple-200/20 blur-3xl"></div>
+          <div className="absolute top-[20%] -right-[5%] w-[30%] h-[50%] rounded-full bg-gradient-to-br from-blue-200/20 to-cyan-200/20 blur-3xl"></div>
+          <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[40%] rounded-full bg-gradient-to-br from-purple-200/20 to-indigo-200/20 blur-3xl"></div>
+        </div>
         {/* Top Navbar */}
-        <header className="bg-gradient-to-r from-blue-100 to-indigo-100 shadow-sm z-10">
+        <header className="bg-slate-900 border-b border-slate-800 shadow-sm z-10 sticky top-0">
           <div className="flex items-center justify-between px-4 lg:px-6 py-4">
             <div className="flex items-center gap-3">
               {/* Mobile Hamburger Button */}
               <button
                 onClick={toggleSidebar}
-                className="p-1 lg:hidden hover:bg-indigo-50 rounded"
+                className="p-1 lg:hidden text-slate-400 hover:text-white hover:bg-slate-800 rounded"
               >
-                <Menu className="h-6 w-6 text-indigo-600" />
+                <Menu className="h-6 w-6" />
               </button>
-              <h2 className="text-lg lg:text-xl font-semibold text-indigo-700">
+              <h2 className="text-lg lg:text-xl font-semibold text-white tracking-wide">
                 {adminName} Dashboard
               </h2>
             </div>
@@ -182,21 +186,21 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center space-x-2 focus:outline-none"
+                className="flex items-center space-x-2 focus:outline-none hover:bg-slate-800 p-1 pr-3 rounded-full transition-colors"
               >
-                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <User className="h-7 w-7 text-indigo-600 bg-white rounded-xl p-1" />
+                <div className="h-9 w-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
+                  <User className="h-5 w-5 text-slate-300" />
                 </div>
-                <span className="hidden md:inline text-indigo-700 hover:text-indigo-900">
+                <span className="hidden md:inline text-slate-200 font-medium">
                   {adminName}
                 </span>
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white border border-indigo-100 rounded shadow-lg z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
                   <button
                     onClick={handleLogout}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:text-indigo-700 hover:bg-indigo-50"
+                    className="flex items-center w-full px-4 py-3 text-sm text-red-600 font-medium hover:bg-red-50 transition-colors"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     Logout

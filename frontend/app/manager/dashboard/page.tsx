@@ -81,6 +81,7 @@ const DashboardPage = () => {
   const [deadline, setDeadline] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedDeptId, setSelectedDeptId] = useState("");
+  const [managerDeptName, setManagerDeptName] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -158,6 +159,18 @@ const DashboardPage = () => {
         if (!priorityResponse.ok) throw new Error("Failed to fetch priorities");
         const priorityData = await priorityResponse.json();
         setPriorities(priorityData.priorities || []);
+
+        const meResponse = await fetch(`${API_BASE_URL}/api/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!meResponse.ok) throw new Error("Failed to fetch current user");
+        const meData = await meResponse.json();
+
+        if (meData?.departmentId) {
+          setSelectedDeptId(meData.departmentId);
+          const dept = departmentsData.departments?.find((d: Department) => d.id === meData.departmentId);
+          if (dept) setManagerDeptName(dept.name);
+        }
       } catch (error: unknown) {
         console.error("Failed to fetch users/departments/priorities", error);
         setModalFetchError("Failed to load data.");
@@ -447,13 +460,6 @@ const DashboardPage = () => {
         <div className="flex gap-3 w-full sm:w-auto">
           <Button
             size="sm"
-            onClick={() => setIsAddDeptModalOpen(true)}
-            className="bg-white hover:bg-gray-50 text-indigo-600 border border-indigo-200 shadow-sm rounded-lg px-4 py-2 text-sm w-full sm:w-auto font-medium transition-all"
-          >
-            + Add Department
-          </Button>
-          <Button
-            size="sm"
             onClick={() => setIsModalOpen(true)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md rounded-lg px-4 py-2 text-sm w-full sm:w-auto font-medium transition-all"
           >
@@ -464,8 +470,8 @@ const DashboardPage = () => {
 
       {/* MAIN GRID LAYOUT */}
       <div className="flex flex-col xl:flex-row gap-6">
-        {/* LEFT COLUMN: ANALYTICS & SIDEBAR */}
-        <div className="w-full xl:w-80 flex flex-col gap-6 shrink-0 order-2 xl:order-1">
+        {/* RIGHT COLUMN: ANALYTICS & SIDEBAR */}
+        <div className="w-full xl:w-72 flex flex-col gap-6 shrink-0 order-2 xl:order-2">
           <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-4">
             <Card className="bg-white/80 backdrop-blur-sm border-indigo-100 shadow-sm">
               <CardContent className="p-4 flex flex-col items-center justify-center">
@@ -575,34 +581,23 @@ const DashboardPage = () => {
           </Card>
         </div>
 
-        {/* RIGHT COLUMN: FILTERS & CONTENT */}
-        <div className="flex-1 order-1 xl:order-2 flex flex-col gap-6">
+        {/* LEFT COLUMN: FILTERS & CONTENT */}
+        <div className="flex-1 order-1 xl:order-1 flex flex-col gap-6">
           {/* Filter Bar */}
           <div className="bg-white/80 p-4 rounded-xl border border-gray-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <SelectField value={filterDept} onValueChange={setFilterDept}>
-              <SelectTrigger>
-                <SelectValue placeholder="Department" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Departments</SelectItem>
-                {departments.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </SelectField>
+            <Input
+              value={managerDeptName || "Loading..."}
+              disabled
+              className="bg-gray-100 border-gray-200 text-gray-600 font-medium cursor-not-allowed"
+            />
 
             <SelectField value={filterUser} onValueChange={setFilterUser}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-white">
                 <SelectValue placeholder="User" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Users</SelectItem>
-                {(filterDept === "All"
-                  ? allUsers
-                  : allUsers.filter((u) => u.departmentId === filterDept)
-                ).map((u) => (
+                {allUsers.map((u) => (
                   <SelectItem key={u.id} value={u.id}>
                     {u.name}
                   </SelectItem>
@@ -610,7 +605,7 @@ const DashboardPage = () => {
               </SelectContent>
             </SelectField>
           </div>
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Recent Tasks */}
             <Card className="rounded-xl shadow-lg bg-white/90 backdrop-blur-sm border border-gray-200">
               <CardHeader className="p-4 md:p-6 border-b border-gray-200">
@@ -817,21 +812,11 @@ const DashboardPage = () => {
                   <label className="block mb-2 font-medium text-gray-700">
                     Department
                   </label>
-                  <SelectField
-                    value={selectedDeptId}
-                    onValueChange={setSelectedDeptId}
-                  >
-                    <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="Select Department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((dep) => (
-                        <SelectItem key={dep.id} value={dep.id}>
-                          {dep.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </SelectField>
+                  <Input
+                    value={managerDeptName}
+                    disabled
+                    className="bg-gray-100 border-gray-200 text-gray-600 font-medium cursor-not-allowed"
+                  />
                 </div>
                 <div>
                   <label className="block mb-2 font-medium text-gray-700">
@@ -841,7 +826,7 @@ const DashboardPage = () => {
                     options={allUsers
                       .filter(
                         (u) =>
-                          u.departmentId === selectedDeptId && u.approved,
+                          u.departmentId === selectedDeptId && u.approved && u.role !== "MANAGER",
                       )
                       .map((user) => ({
                         id: user.id,
@@ -849,7 +834,7 @@ const DashboardPage = () => {
                       }))}
                     selectedIds={selectedUserIds}
                     onChange={setSelectedUserIds}
-                    placeholder={selectedDeptId ? "Select Users..." : "Select Department First"}
+                    placeholder={selectedDeptId ? "Select Users..." : "Loading Department..."}
                     className={!selectedDeptId ? "opacity-50 pointer-events-none" : ""}
                   />
                 </div>

@@ -26,6 +26,7 @@ type UserForToken = {
   email: string;
   role: string;
   approved: boolean;
+  departmentId?: string | null;
 };
 
 dotenv.config();
@@ -35,7 +36,8 @@ export const signup = async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, approved, departmentId, captchaToken } = req.body;
 
-    // Verify ReCAPTCHA
+    // Verify ReCAPTCHA (Bypassed for now)
+    /*
     const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     if (secretKey) {
       if (!captchaToken) {
@@ -54,6 +56,7 @@ export const signup = async (req: Request, res: Response) => {
         "RECAPTCHA_SECRET_KEY not found in env, skipping verification."
       );
     }
+    */
     const user = await registerUser(
       name,
       email,
@@ -78,6 +81,12 @@ export const createUser = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    const reqUser = req.user as UserForToken;
+    let finalDepartmentId = departmentId;
+    if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
+      finalDepartmentId = reqUser.departmentId;
+    }
+
     // Reuse registerUser logic but force approved=true
     const user = await registerUser(
       name,
@@ -85,7 +94,7 @@ export const createUser = async (req: Request, res: Response) => {
       password,
       role,
       true, // approved
-      departmentId
+      finalDepartmentId
     );
 
     // Fetch user with department to return complete object for frontend
@@ -113,7 +122,8 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password, captchaToken } = req.body;
 
-    // Verify ReCAPTCHA
+    // Verify ReCAPTCHA (Bypassed for now)
+    /*
     const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     if (secretKey) {
       if (!captchaToken) {
@@ -130,6 +140,7 @@ export const login = async (req: Request, res: Response) => {
     } else {
       console.warn("RECAPTCHA_SECRET_KEY not found in env, skipping verification.");
     }
+    */
 
     const user = await loginUser(email, password);
 
@@ -155,12 +166,11 @@ export const login = async (req: Request, res: Response) => {
         email: user.email,
         role: user.role,
         approved: user.approved,
+        departmentId: user.departmentId || null,
       },
       process.env.JWT_SECRET!,
       { expiresIn: "1d" } // Token expires in 1 day
     );
-
-
 
 
     // Set the token as an HttpOnly cookie
@@ -197,10 +207,14 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
 export const getPendingUsers = async (req: Request, res: Response) => {
   try {
+    const reqUser = req.user as UserForToken;
+    const whereClause: any = { approved: false };
+    if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
+      whereClause.departmentId = reqUser.departmentId;
+    }
+
     const pendingUsers = await prisma.user.findMany({
-      where: {
-        approved: false,
-      },
+      where: whereClause,
       select: {
         id: true,
         name: true,
@@ -222,6 +236,14 @@ export const getPendingUsers = async (req: Request, res: Response) => {
 export const approveUser = async (req: Request, res: Response) => {
   const { userId } = req.params;
   try {
+    const reqUser = req.user as UserForToken;
+    if (reqUser?.role === "MANAGER") {
+      const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+      if (!targetUser || targetUser.departmentId !== reqUser.departmentId) {
+        return res.status(403).json({ message: "Forbidden: User is in another department." });
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: { approved: true },
@@ -250,6 +272,14 @@ export const approveUser = async (req: Request, res: Response) => {
 export const declineUser = async (req: Request, res: Response) => {
   const { userId } = req.params;
   try {
+    const reqUser = req.user as UserForToken;
+    if (reqUser?.role === "MANAGER") {
+      const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+      if (!targetUser || targetUser.departmentId !== reqUser.departmentId) {
+        return res.status(403).json({ message: "Forbidden: User is in another department." });
+      }
+    }
+
     await prisma.user.delete({
       where: { id: userId },
     });
@@ -267,6 +297,14 @@ export const deleteUser = async (req: Request, res: Response) => {
   const { userId } = req.params;
 
   try {
+    const reqUser = req.user as UserForToken;
+    if (reqUser?.role === "MANAGER") {
+      const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+      if (!targetUser || targetUser.departmentId !== reqUser.departmentId) {
+        return res.status(403).json({ message: "Forbidden: User is in another department." });
+      }
+    }
+
     await prisma.user.delete({
       where: { id: userId },
     });
@@ -290,6 +328,22 @@ export const updateUser = async (req: Request, res: Response) => {
   }
 
   try {
+    const reqUser = req.user as UserForToken;
+    if (reqUser?.role === "MANAGER") {
+      const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+      if (!targetUser || targetUser.departmentId !== reqUser.departmentId) {
+        return res.status(403).json({ message: "Forbidden: User is in another department." });
+      }
+
+      // Prevent manager from moving someone OUT of their department or changing to ADMIN
+      if (departmentId !== reqUser.departmentId) {
+        return res.status(403).json({ message: "Managers cannot change a user's department." });
+      }
+      if (role === "ADMIN") {
+        return res.status(403).json({ message: "Managers cannot promote users to Admin." });
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
@@ -338,7 +392,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     const decoded = verifyToken(token);
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, name: true, email: true, role: true },
+      select: { id: true, name: true, email: true, role: true, departmentId: true },
     });
 
     if (!user) {

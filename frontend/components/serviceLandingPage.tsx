@@ -17,6 +17,8 @@ import {
   EyeOff,
   Sparkles,
   CheckCircle2,
+  Check,
+  X,
 } from "lucide-react";
 import API_BASE_URL from "@/lib/api";
 
@@ -31,12 +33,12 @@ export default function ServiceCompanyLanding() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState("");
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>("bypassed_for_now");
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   // Reset ReCAPTCHA and form fields when switching between Login and Signup
   useEffect(() => {
-    setCaptchaToken(null);
+    setCaptchaToken("bypassed_for_now");
     if (recaptchaRef.current) {
       recaptchaRef.current.reset();
     }
@@ -81,6 +83,9 @@ export default function ServiceCompanyLanding() {
         } else if (role === "EMPLOYEE") {
           router.push("/employee/dashboard");
           router.refresh();
+        } else if (role === "MANAGER") {
+          router.push("/manager/dashboard");
+          router.refresh();
         } else {
           setError("Unknown user role");
         }
@@ -90,6 +95,13 @@ export default function ServiceCompanyLanding() {
     } else {
       if (password !== confirmPassword) {
         setError("Passwords don't match!");
+        return;
+      }
+
+      // Strong password validation
+      const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!strongPasswordRegex.test(password)) {
+        setError("Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character.");
         return;
       }
 
@@ -357,6 +369,33 @@ export default function ServiceCompanyLanding() {
                             )}
                           </button>
                         </div>
+                        {!isLogin && (
+                          <div className="mt-3 space-y-1.5 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                            <p className="text-xs font-semibold text-gray-700 mb-2">Password requirements:</p>
+                            <div className="grid grid-cols-2 gap-2 text-[11px] font-medium tracking-wide">
+                              <div className={`flex items-center space-x-1.5 transition-colors duration-300 ${password.length >= 8 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                {password.length >= 8 ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                                <span>8+ characters</span>
+                              </div>
+                              <div className={`flex items-center space-x-1.5 transition-colors duration-300 ${/[A-Z]/.test(password) ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                {/[A-Z]/.test(password) ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                                <span>Uppercase letter</span>
+                              </div>
+                              <div className={`flex items-center space-x-1.5 transition-colors duration-300 ${/[a-z]/.test(password) ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                {/[a-z]/.test(password) ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                                <span>Lowercase letter</span>
+                              </div>
+                              <div className={`flex items-center space-x-1.5 transition-colors duration-300 ${/\d/.test(password) ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                {/\d/.test(password) ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                                <span>Number</span>
+                              </div>
+                              <div className={`flex items-center space-x-1.5 col-span-2 transition-colors duration-300 ${/[@$!%*?&]/.test(password) ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                {/[@$!%*?&]/.test(password) ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                                <span>Special character (@$!%*?&)</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {!isLogin && (
@@ -455,6 +494,7 @@ export default function ServiceCompanyLanding() {
                         </div>
                       )}
 
+                      {/* ReCAPTCHA hidden for now
                       <div className="flex justify-center w-full overflow-hidden">
                         <div className="transform scale-110 origin-center py-2">
                           <ReCAPTCHA
@@ -464,6 +504,7 @@ export default function ServiceCompanyLanding() {
                           />
                         </div>
                       </div>
+                      */}
 
                       <Button
                         type="submit"

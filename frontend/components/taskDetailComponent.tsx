@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import TaskLogDisplay from "./taskLogDisplay";
 // import API_BASE_URL from "@/lib/api";
 import { TaskStatus, TASK_STATUS_CONFIG } from "@/lib/taskStatus";
+import TaskAssigneeEditor from "./TaskAssigneeEditor";
 
 type Log = {
   id: string;
@@ -19,6 +20,7 @@ type Task = {
   deadline: string;
   status: TaskStatus;
   priority?: { code: string; name: string; color: string };
+  assignees?: { id: string; name: string }[];
   logs: Log[];
 };
 
@@ -88,7 +90,7 @@ export default function TaskDetailComponent({
   return (
     <div className="bg-white rounded-2xl w-full max-h-[90vh] overflow-hidden flex flex-col font-sans">
       {/* Header - Fixed */}
-      <div className="relative px-8 py-6 flex-shrink-0  border-b border-slate-100">
+      <div className="relative pl-8 pr-16 py-6 flex-shrink-0  border-b border-slate-100">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <span
@@ -143,6 +145,16 @@ export default function TaskDetailComponent({
         <p className="text-slate-500 text-sm leading-relaxed max-w-2xl">
           {task.description}
         </p>
+
+        <TaskAssigneeEditor
+          taskId={task.id}
+          currentAssignees={task.assignees || []}
+          token={token}
+          isActive={task.status === "ACTIVE"}
+          onAssigneesUpdated={(newAssignees: { id: string; name: string }[]) =>
+            setTask((prev) => ({ ...prev, assignees: newAssignees }))
+          }
+        />
       </div>
 
       {/* Scrollable Content */}

@@ -145,7 +145,7 @@ export default function EmployeeDashboard() {
         <KPICard
           title="Active Tasks"
           value={activeTasks.length}
-          color="bg-blue-50 text-blue-700 border-blue-200"
+          color="bg-indigo-50 text-indigo-700 border-indigo-200"
         />
         <KPICard
           title="Delayed Tasks"
@@ -245,12 +245,12 @@ export default function EmployeeDashboard() {
           onClick={() => setSelectedTaskId(null)}
         >
           <div
-            className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl h-[90vh] overflow-y-auto relative animate-fadeIn"
+            className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative animate-fadeIn"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setSelectedTaskId(null)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-red-600 text-lg font-semibold"
+              className="absolute top-4 right-4 z-50 bg-white/80 backdrop-blur-sm  text-gray-500 hover:text-red-600 text-lg font-semibold"
             >
               ✕
             </button>

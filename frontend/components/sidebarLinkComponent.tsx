@@ -20,10 +20,10 @@ export function SidebarLink({
     <Link href={href}>
       <div
         className={clsx(
-          "flex items-center p-4 cursor-pointer",
+          "flex items-center px-4 py-3 mx-2 my-1 cursor-pointer rounded-xl font-medium transition-all duration-200",
           isActive
-            ? "bg-blue-800 text-slate-100"
-            : "hover:bg-slate-100 text-gray-500 hover:text-blue-800"
+            ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+            : "text-slate-400 hover:bg-slate-800 hover:text-white"
         )}
       >
         <div className="h-5 w-5">{icon}</div>

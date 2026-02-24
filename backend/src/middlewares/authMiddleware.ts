@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 declare global {
   namespace Express {
     interface Request {
-      user?: { id: string; role: string };
+      user?: { id: string; email: string; role: string; departmentId: string | null };
     }
   }
 }
@@ -29,8 +29,9 @@ export const authenticateJWT = (
       id: string;
       email: string;
       role: string;
+      departmentId: string | null;
     };
-    req.user = { id: decoded.id, email: decoded.email, role: decoded.role };
+    (req as any).user = { id: decoded.id, email: decoded.email, role: decoded.role, departmentId: decoded.departmentId || null };
     next();
   } catch (err) {
     res.status(403).json({ message: "Invalid token" });

@@ -25,7 +25,7 @@ export const addLog = async (req: Request, res: Response) => {
         userId: userId
       },
       include: {
-        user: { select: { name: true } }
+        user: { select: { name: true, role: true } }
       }
     });
     res.status(201).json(newLog);
