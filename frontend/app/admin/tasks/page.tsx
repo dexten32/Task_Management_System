@@ -47,6 +47,7 @@ interface User {
   name: string;
   departmentId: string | null;
   departmentName?: string;
+  role: string;
 }
 
 interface Department {
@@ -122,6 +123,7 @@ export default function AdminTasksPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("All");
   const [selectedUser, setSelectedUser] = useState<string>("All");
+  const [selectedAssignedBy, setSelectedAssignedBy] = useState<string>("All");
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(false);
@@ -185,6 +187,7 @@ export default function AdminTasksPage() {
             name: user.name,
             departmentId: user.departmentId || null,
             departmentName: user.department?.name || null,
+            role: user.role,
           }),
         );
         setUsers(mappedUsers);
@@ -248,7 +251,7 @@ export default function AdminTasksPage() {
           deadline: task.deadline,
           assignedTo: task.assignedTo || { id: "", name: "N/A" },
           assignees: task.assignees || [],
-          department: task.assignedTo?.department?.name || "N/A",
+          department: task.assignees?.[0]?.department?.name || "N/A",
           status: task.status,
           assignedBy: task.assignedBy || { id: "", name: "N/A" },
           priority: task.priority,
@@ -288,7 +291,10 @@ export default function AdminTasksPage() {
     const statusMatch =
       selectedStatus === "All" || task.status === selectedStatus;
 
-    return departmentMatch && userMatch && priorityMatch && statusMatch;
+    const assignedByMatch =
+      selectedAssignedBy === "All" || task.assignedBy?.name === selectedAssignedBy;
+
+    return departmentMatch && userMatch && priorityMatch && statusMatch && assignedByMatch;
   });
 
   return (
@@ -339,7 +345,7 @@ export default function AdminTasksPage() {
             htmlFor="user"
             className="block text-sm font-medium text-gray-600 mb-1"
           >
-            Filter by User
+            Filter by Assigned To
           </label>
           {loadingUsers ? (
             <p className="text-sm text-gray-500">Loading...</p>
@@ -350,15 +356,49 @@ export default function AdminTasksPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All</SelectItem>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.name}>
-                    {user.name}
-                  </SelectItem>
-                ))}
+                {users
+                  .filter((user) => user.role !== "MANAGER")
+                  .map((user) => (
+                    <SelectItem key={user.id} value={user.name}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </SelectField>
           )}
         </div>
+
+        <div className="flex flex-col">
+          <label className="block text-sm font-medium text-gray-600 mb-1">
+            Filter by Assigned By
+          </label>
+          {loadingUsers ? (
+            <p className="text-sm text-gray-500">Loading...</p>
+          ) : (
+            <SelectField
+              value={selectedAssignedBy}
+              onValueChange={setSelectedAssignedBy}
+            >
+              <SelectTrigger className="w-full bg-white border-gray-300">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                {users
+                  .filter(
+                    (user) =>
+                      user.role === "MANAGER" || user.role === "ADMIN",
+                  )
+                  .map((user) => (
+                    <SelectItem key={user.id} value={user.name}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </SelectField>
+          )}
+        </div>
+
         <div className="flex flex-col">
           <label className="block text-sm font-medium text-gray-600 mb-1">
             Filter by Status
@@ -498,6 +538,12 @@ export default function AdminTasksPage() {
                           {task.assignees && task.assignees.length > 0
                             ? task.assignees.map((a) => a.name).join(", ")
                             : task.assignedTo?.name || "N/A"}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-gray-700">
+                            Assigned By:
+                          </span>{" "}
+                          {task.assignedBy?.name || "N/A"}
                         </p>
                         <p>
                           <span className="font-semibold text-gray-700">

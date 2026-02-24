@@ -174,7 +174,7 @@ export const getRecentTasks = async (req: Request, res: Response) => {
   const adminId = reqUser?.id;
 
   try {
-    let whereClause: any = { assignedById: adminId };
+    let whereClause: any = {};
     if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
       whereClause = {
         OR: [
@@ -182,6 +182,8 @@ export const getRecentTasks = async (req: Request, res: Response) => {
           { assignees: { some: { departmentId: reqUser.departmentId } } }
         ]
       };
+    } else if (reqUser?.role !== "ADMIN") {
+      whereClause = { assignedById: adminId };
     }
 
     const tasks = await prisma.task.findMany({
@@ -259,8 +261,9 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
     );
     const assigneeId = req.query.userId as string | undefined;
     const departmentId = req.query.departmentId as string | undefined;
+    const assignedByUserId = req.query.assignedByUserId as string | undefined;
 
-    let baseWhere: any = { assignedById: adminId };
+    let baseWhere: any = {};
     if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
       baseWhere = {
         OR: [
@@ -268,6 +271,8 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
           { assignees: { some: { departmentId: reqUser.departmentId } } }
         ]
       };
+    } else if (reqUser?.role !== "ADMIN") {
+      baseWhere = { assignedById: adminId };
     }
 
     const tasks = await prisma.task.findMany({
@@ -279,6 +284,7 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
             status: { in: [TaskStatus.ACTIVE, TaskStatus.DELAYED] },
             ...(assigneeId && { assignees: { some: { id: assigneeId } } }),
             ...(departmentId && !assigneeId && { assignees: { some: { departmentId } } }),
+            ...(assignedByUserId && { assignedById: assignedByUserId }),
           }
         ]
       },
@@ -383,20 +389,23 @@ export const getTaskLimit = async (req: Request, res: Response) => {
   );
   const assigneeId = req.query.userId as string | undefined;
   const departmentId = req.query.departmentId as string | undefined;
+  const assignedByUserId = req.query.assignedByUserId as string | undefined;
 
   if (!adminId) {
     return res.status(400).json({ error: "Missing adminId" });
   }
 
-  let baseWhere: any = { assignedById: adminId };
-  if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
-    baseWhere = {
-      OR: [
-        { assignedById: adminId },
-        { assignees: { some: { departmentId: reqUser.departmentId } } }
-      ]
-    };
-  }
+  let baseWhere: any = {};
+    if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
+      baseWhere = {
+        OR: [
+          { assignedById: adminId },
+          { assignees: { some: { departmentId: reqUser.departmentId } } }
+        ]
+      };
+    } else if (reqUser?.role !== "ADMIN") {
+      baseWhere = { assignedById: adminId };
+    }
 
   const tasks = await prisma.task.findMany({
     where: {
@@ -405,10 +414,11 @@ export const getTaskLimit = async (req: Request, res: Response) => {
         {
           ...(assigneeId && { assignees: { some: { id: assigneeId } } }),
           ...(departmentId && !assigneeId && { assignees: { some: { departmentId } } }),
-        }
-      ]
-    },
-    take: limit,
+            ...(assignedByUserId && { assignedById: assignedByUserId }),
+          }
+        ]
+      },
+      take: limit,
     orderBy: {
       createdAt: "desc",
     },
@@ -430,7 +440,7 @@ export const getTaskLimit = async (req: Request, res: Response) => {
         },
       },
       assignedBy: {
-        select: { id: true },
+        select: { id: true, name: true },
       },
     },
   });
@@ -516,8 +526,9 @@ export const getDashboardAggregates = async (req: Request, res: Response) => {
   try {
     const assigneeId = req.query.userId as string | undefined;
     const departmentId = req.query.departmentId as string | undefined;
+    const assignedByUserId = req.query.assignedByUserId as string | undefined;
 
-    let baseManagerWhere: any = { assignedById: adminId };
+    let baseManagerWhere: any = {};
     if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
       baseManagerWhere = {
         OR: [
@@ -525,6 +536,8 @@ export const getDashboardAggregates = async (req: Request, res: Response) => {
           { assignees: { some: { departmentId: reqUser.departmentId } } }
         ]
       };
+    } else if (reqUser?.role !== "ADMIN") {
+      baseManagerWhere = { assignedById: adminId };
     }
 
     const baseWhere: Prisma.TaskWhereInput = {
@@ -533,6 +546,7 @@ export const getDashboardAggregates = async (req: Request, res: Response) => {
         {
           ...(assigneeId && { assignees: { some: { id: assigneeId } } }),
           ...(departmentId && !assigneeId && { assignees: { some: { departmentId } } }),
+          ...(assignedByUserId && { assignedById: assignedByUserId }),
         }
       ]
     } as any;

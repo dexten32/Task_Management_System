@@ -112,6 +112,7 @@ const DashboardPage = () => {
   // Filters State
   const [filterDept, setFilterDept] = useState<string>("All");
   const [filterUser, setFilterUser] = useState<string>("All");
+  const [filterAssignedBy, setFilterAssignedBy] = useState<string>("All");
   const [aggregates, setAggregates] = useState<DashboardAggregates>({
     total: 0,
     active: 0,
@@ -168,7 +169,7 @@ const DashboardPage = () => {
     fetchUsersAndDepartments();
   }, []);
 
-  const fetchTasks = async (filterUser: string, filterDept: string) => {
+  const fetchTasks = async (filterUser: string, filterDept: string, filterAssignedBy: string) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication token not found.");
@@ -176,8 +177,12 @@ const DashboardPage = () => {
       query.set("limit", "3");
       if (filterUser !== "All") {
         query.set("userId", filterUser);
-      } else if (filterDept !== "All") {
+      }
+      if (filterDept !== "All") {
         query.set("departmentId", filterDept);
+      }
+      if (filterAssignedBy !== "All") {
+        query.set("assignedByUserId", filterAssignedBy);
       }
       const res = await fetch(
         `${API_BASE_URL}/api/tasks/recentlimit?${query.toString()}`,
@@ -196,6 +201,7 @@ const DashboardPage = () => {
   const fetchBackendDelayedTasks = async (
     filterUser: string,
     filterDept: string,
+    filterAssignedBy: string,
   ) => {
     try {
       const token = localStorage.getItem("token");
@@ -204,8 +210,12 @@ const DashboardPage = () => {
       query.set("limit", "3");
       if (filterUser !== "All") {
         query.set("userId", filterUser);
-      } else if (filterDept !== "All") {
+      }
+      if (filterDept !== "All") {
         query.set("departmentId", filterDept);
+      }
+      if (filterAssignedBy !== "All") {
+        query.set("assignedByUserId", filterAssignedBy);
       }
       const res = await fetch(
         `${API_BASE_URL}/api/tasks/delayed?${query.toString()}`,
@@ -226,6 +236,7 @@ const DashboardPage = () => {
   const fetchDashboardAggregates = async (
     filterUser: string,
     filterDept: string,
+    filterAssignedBy: string,
   ) => {
     const token = localStorage.getItem("token");
     if (!token) throw new Error("No Token");
@@ -234,8 +245,12 @@ const DashboardPage = () => {
 
     if (filterUser !== "All") {
       query.set("userId", filterUser);
-    } else if (filterDept !== "All") {
+    }
+    if (filterDept !== "All") {
       query.set("departmentId", filterDept);
+    }
+    if (filterAssignedBy !== "All") {
+      query.set("assignedByUserId", filterAssignedBy);
     }
 
     try {
@@ -254,10 +269,10 @@ const DashboardPage = () => {
   };
 
   useEffect(() => {
-    fetchTasks(filterUser, filterDept);
-    fetchBackendDelayedTasks(filterUser, filterDept);
-    fetchDashboardAggregates(filterUser, selectedDeptId).then(setAggregates);
-  }, [filterUser, filterDept, selectedDeptId]);
+    fetchTasks(filterUser, filterDept, filterAssignedBy);
+    fetchBackendDelayedTasks(filterUser, filterDept, filterAssignedBy);
+    fetchDashboardAggregates(filterUser, filterDept, filterAssignedBy).then(setAggregates);
+  }, [filterUser, filterDept, filterAssignedBy]);
 
   useEffect(() => {
     setSelectedUserIds([]);
@@ -385,7 +400,7 @@ const DashboardPage = () => {
         setSelectedDeptId("");
         setSelectedPriorityId(null);
         setTimeout(() => setIsModalOpen(false), 1500);
-        fetchTasks(filterUser, filterDept);
+        fetchTasks(filterUser, filterDept, filterAssignedBy);
       } else {
         const data = await response.json();
         setError(data.message || "Failed to create task");
@@ -595,18 +610,36 @@ const DashboardPage = () => {
 
             <SelectField value={filterUser} onValueChange={setFilterUser}>
               <SelectTrigger>
-                <SelectValue placeholder="User" />
+                <SelectValue placeholder="Assigned To" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All">All Users</SelectItem>
+                <SelectItem value="All">All Assignees</SelectItem>
                 {(filterDept === "All"
                   ? allUsers
                   : allUsers.filter((u) => u.departmentId === filterDept)
-                ).map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
-                  </SelectItem>
-                ))}
+                )
+                  .filter((u) => u.role !== "MANAGER")
+                  .map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </SelectField>
+
+            <SelectField value={filterAssignedBy} onValueChange={setFilterAssignedBy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Assigned By" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Creators</SelectItem>
+                {allUsers
+                  .filter((u) => u.role === "MANAGER" || u.role === "ADMIN")
+                  .map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </SelectField>
           </div>
@@ -659,6 +692,12 @@ const DashboardPage = () => {
                                 : "N/A"}
                             </span>
                           </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <strong>Assigned By:</strong>{" "}
+                            <span className="font-medium text-gray-800">
+                              {task.assignedBy?.name || "N/A"}
+                            </span>
+                          </p>
                           <p className="text-sm text-gray-600">
                             <strong>Deadline:</strong>{" "}
                             {task.deadline
@@ -708,11 +747,31 @@ const DashboardPage = () => {
                           <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded mb-1 inline-block">
                             CYN-0{task.readableId}
                           </span>
-                          <p className="font-medium text-gray-700 text-base">
-                            {task.title}
+                          <p className="text-sm text-gray-600 mb-1">
+                            <strong>Title:</strong>{" "}
+                            <span className="font-medium text-gray-800">
+                              {task.title}
+                            </span>
                           </p>
-                          <p className="text-sm text-red-500 mt-1">
-                            Overdue since:{" "}
+                          <p className="text-sm text-gray-600 mb-1 line-clamp-1">
+                            <strong>Desc:</strong> {task.description}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <strong>Assigned To:</strong>{" "}
+                            <span className="font-medium text-gray-800">
+                              {task.assignees && task.assignees.length > 0
+                                ? task.assignees.map((a) => a.name).join(", ")
+                                : "N/A"}
+                            </span>
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <strong>Assigned By:</strong>{" "}
+                            <span className="font-medium text-gray-800">
+                              {task.assignedBy?.name || "N/A"}
+                            </span>
+                          </p>
+                          <p className="text-sm text-red-600">
+                            <strong>Overdue since:</strong>{" "}
                             {task.deadline
                               ? format(new Date(task.deadline), "PPPpp")
                               : "N/A"}
