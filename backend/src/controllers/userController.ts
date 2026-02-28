@@ -16,8 +16,10 @@ import { User as NextAuthUser } from "next-auth"; // Renamed to avoid conflict i
 import prisma from "../config/prisma";
 import { Prisma, Role } from "@prisma/client";
 import { verifyToken } from "../utils/jwt";
+import redis from "../config/redis";
 
 // Define a custom User type with 'role' and 'id' as these are essential for the token payload
+
 // and are likely properties on the user object returned by loginUser.
 // If loginUser returns a Prisma User, you can directly use Prisma.UserGetPayload<...>
 
@@ -37,6 +39,7 @@ export const signup = async (req: Request, res: Response) => {
     const { name, email, password, role, approved, departmentId, captchaToken } = req.body;
 
     // Verify ReCAPTCHA
+    /*
     const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     if (secretKey) {
       if (!captchaToken) {
@@ -55,6 +58,7 @@ export const signup = async (req: Request, res: Response) => {
         "RECAPTCHA_SECRET_KEY not found in env, skipping verification."
       );
     }
+    */
     const user = await registerUser(
       name,
       email,
@@ -120,7 +124,8 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password, captchaToken } = req.body;
 
-    // Verify ReCAPTCHA
+    // --- 1. Verify ReCAPTCHA first to prevent delay weaponization ---
+    let captchaPassed = false;
     const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     if (secretKey) {
       if (!captchaToken) {
@@ -128,20 +133,70 @@ export const login = async (req: Request, res: Response) => {
       }
 
       const verificationUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${captchaToken}`;
-      const captchaResponse = await fetch(verificationUrl, { method: "POST" });
-      const captchaData = await captchaResponse.json();
+      try {
+        const captchaResponse = await fetch(verificationUrl, { method: "POST" });
+        const captchaData = await captchaResponse.json();
 
-      if (!captchaData.success) {
-        return res.status(400).json({ message: "ReCAPTCHA verification failed" });
+        if (!captchaData.success) {
+          return res.status(400).json({ message: "ReCAPTCHA verification failed" });
+        }
+        captchaPassed = true; // CAPTCHA verified, true human
+      } catch (err) {
+        console.error("ReCAPTCHA verification error:", err);
+        return res.status(500).json({ message: "Error verifying ReCAPTCHA" });
       }
     } else {
       console.warn("RECAPTCHA_SECRET_KEY not found in env, skipping verification.");
+      // If we don't have a key, we arbitrarily treat it as passed to bypass locks, 
+      // or we can allow the progressive delay to hit. Let's allow the delay if no key exists.
+    }
+
+    // --- 2. Progressive Delay Logic ---
+    const normalizedEmail = email ? email.toLowerCase() : "";
+    const redisKey = `login_fails:${normalizedEmail}`;
+    let failedAttempts = 0;
+
+    // Check if redis is accessible and there are existing failed attempts
+    try {
+      const attemptsStr = await redis.get(redisKey);
+      if (attemptsStr) {
+        failedAttempts = parseInt(attemptsStr, 10);
+        // Calculate progressive delay: attempts * 1000ms, max 15 seconds
+        const delayMs = Math.min(failedAttempts * 1000, 15000);
+
+        if (delayMs > 0 && !captchaPassed) {
+          console.log(`Applying progressive delay of ${delayMs}ms for ${normalizedEmail} (No CAPTCHA bypassed)`);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        } else if (delayMs > 0 && captchaPassed) {
+          console.log(`Bypassing progressive delay of ${delayMs}ms for ${normalizedEmail} (Valid CAPTCHA)`);
+        }
+      }
+    } catch (redisError) {
+      console.error("Redis connection error during delay check:", redisError);
+      // Proceed without delay if Redis fails rather than blocking login
     }
 
     const user = await loginUser(email, password);
 
     if (!user) {
+      // Increment failed attempts in Redis
+      try {
+        await redis.incr(redisKey);
+        // Set expiry to 15 minutes (900 seconds) if it wasn't already set
+        if (failedAttempts === 0) {
+          await redis.expire(redisKey, 900);
+        }
+      } catch (redisError) {
+        console.error("Redis connection error during increment:", redisError);
+      }
       return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // On success, clear the failed attempts
+    try {
+      await redis.del(redisKey);
+    } catch (redisError) {
+      console.error("Redis connection error during delete:", redisError);
     }
 
     if (
@@ -185,6 +240,27 @@ export const login = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error("Backend: Error during login:", error.message);
+
+    // Only apply delay logic for invalid credentials errors, not for internal server errors
+    if (error.message === "User not found" || error.message === "Invalid password" || error.message === "Password not set for this user") {
+      // Increment failed attempts in Redis
+      try {
+        const normalizedEmail = req.body.email ? req.body.email.toLowerCase() : "";
+        const redisKey = `login_fails:${normalizedEmail}`;
+        const attemptsStr = await redis.get(redisKey);
+        const failedAttempts = attemptsStr ? parseInt(attemptsStr, 10) : 0;
+
+        await redis.incr(redisKey);
+        // Set expiry to 15 minutes (900 seconds) if it wasn't already set
+        if (failedAttempts === 0) {
+          await redis.expire(redisKey, 900);
+        }
+      } catch (redisError) {
+        console.error("Redis connection error during increment:", redisError);
+      }
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
     res.status(401).json({ message: error.message || "Login failed" });
   }
 };

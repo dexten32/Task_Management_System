@@ -34,7 +34,23 @@ export default function ServiceCompanyLanding() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
+
+  // Handle retry countdown
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (retryAfter !== null && retryAfter > 0) {
+      interval = setInterval(() => {
+        setRetryAfter((prev) => (prev && prev > 1000 ? prev - 1000 : null));
+      }, 1000);
+    } else if (retryAfter !== null && retryAfter <= 0) {
+      setRetryAfter(null);
+      setError("");
+    }
+    return () => clearInterval(interval);
+  }, [retryAfter]);
 
   // Reset ReCAPTCHA and form fields when switching between Login and Signup
   useEffect(() => {
@@ -42,20 +58,27 @@ export default function ServiceCompanyLanding() {
     if (recaptchaRef.current) {
       recaptchaRef.current.reset();
     }
+    setRetryAfter(null);
     setError(""); // Also clear any previous errors
     setName("");
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+    setIsLoading(false);
   }, [isLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (retryAfter) return; // Prevent submission if timer is running
+
     setError("");
+    setIsLoading(true);
 
     if (isLogin) {
+      // Enforce CAPTCHA to bypass lockout
       if (!captchaToken) {
-        setError("Please complete the recaptcha verification");
+        setError("Please complete the ReCAPTCHA verification to sign in");
+        setIsLoading(false);
         return;
       }
 
@@ -69,7 +92,13 @@ export default function ServiceCompanyLanding() {
 
         if (!response.ok) {
           const errorData = await response.json();
-          setError(errorData.message || "Login failed");
+          if (response.status === 429 && errorData.retryAfterMs) {
+            setRetryAfter(errorData.retryAfterMs);
+            setError(`Account temporarily locked. Please try again in ${Math.ceil(errorData.retryAfterMs / 1000)} seconds.`);
+          } else {
+            setError(errorData.message || "Login failed");
+          }
+          setIsLoading(false);
           return;
         }
 
@@ -88,13 +117,16 @@ export default function ServiceCompanyLanding() {
           router.refresh();
         } else {
           setError("Unknown user role");
+          setIsLoading(false);
         }
       } catch (err) {
         setError("Network error. Please try again.");
+        setIsLoading(false);
       }
     } else {
       if (password !== confirmPassword) {
         setError("Passwords don't match!");
+        setIsLoading(false);
         return;
       }
 
@@ -102,11 +134,14 @@ export default function ServiceCompanyLanding() {
       const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
       if (!strongPasswordRegex.test(password)) {
         setError("Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character.");
+        setIsLoading(false);
         return;
       }
 
+      // Enforce CAPTCHA for signup
       if (!captchaToken) {
-        setError("Please complete the recaptcha verification");
+        setError("Please complete the ReCAPTCHA verification");
+        setIsLoading(false);
         return;
       }
 
@@ -120,6 +155,7 @@ export default function ServiceCompanyLanding() {
         if (!response.ok) {
           const data = await response.json();
           setError(data.message || "Signup failed");
+          setIsLoading(false);
           return;
         }
 
@@ -127,6 +163,8 @@ export default function ServiceCompanyLanding() {
         setIsLogin(true);
       } catch (err) {
         setError("Network error. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -506,27 +544,44 @@ export default function ServiceCompanyLanding() {
 
                       <Button
                         type="submit"
-                        disabled={!captchaToken}
-                        className={`relative w-full group overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-700 text-white font-semibold text-lg py-4 md:py-4 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl ${!captchaToken
-                          ? "opacity-50 cursor-not-allowed grayscale"
-                          : ""
-                          }`}
+                        disabled={isLoading || retryAfter !== null}
+                        className={`relative w-full group overflow-hidden bg-gradient-to-r ${isLoading || retryAfter !== null
+                          ? "from-gray-400 to-gray-500 cursor-not-allowed"
+                          : "from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-700 hover:via-indigo-700 hover:to-blue-700"
+                          } text-white font-semibold text-lg py-4 md:py-4 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl`}
                       >
                         <span className="flex items-center justify-center space-x-2">
-                          <span>{isLogin ? "Sign In" : "Create Account"}</span>
-                          <svg
-                            className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M13 7l5 5m0 0l-5 5m5-5H6"
-                            />
-                          </svg>
+                          {retryAfter !== null ? (
+                            <div className="flex items-center space-x-2">
+                              <Lock className="w-5 h-5 text-white" />
+                              <span>Try again in {Math.ceil(retryAfter / 1000)}s</span>
+                            </div>
+                          ) : isLoading ? (
+                            <div className="flex items-center space-x-2 border-transparent">
+                              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              <span>Processing...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <span>{isLogin ? "Sign In" : "Create Account"}</span>
+                              <svg
+                                className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                                />
+                              </svg>
+                            </>
+                          )}
                         </span>
                       </Button>
 

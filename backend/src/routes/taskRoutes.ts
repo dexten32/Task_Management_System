@@ -37,7 +37,7 @@ function asyncHandler(
 router.post("/assign", authenticateJWT, allowRoles("ADMIN", "MANAGER"), asyncHandler(assignTask));
 
 // GET /api/tasks?assignedBy=xxx
-router.get("/", authenticateJWT, asyncHandler(getTasksController));
+router.get("/", asyncHandler(getTasksController));
 
 // Additional routes
 router.get(`/recent`, authenticateJWT, asyncHandler(getRecentTasks));

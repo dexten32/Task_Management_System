@@ -9,13 +9,18 @@ import roleRoutes from "./routes/roleRoutes";
 import { PrismaClient } from "@prisma/client";
 import logsRoutes from "./routes/logsRoutes";
 import priorityRoutes from "./routes/priorityRoutes";
+import compression from "compression";
+import { globalLimiter } from "./middlewares/rateLimiter";
 
 const prisma = new PrismaClient();
 const app = express();
 
-
 // Middleware
+app.use(compression());
 app.use(express.json());
+
+// Apply global rate limiting to all requests
+app.use(globalLimiter);
 
 app.use(
   cors({

@@ -47,6 +47,12 @@ model Task {
   priority     Priority?  @relation(fields: [priorityId], references: [id])
   logs         TaskLog[]
   assignees    User[]     @relation("TaskAssignees")
+
+  @@index([assignedById])
+  @@index([status])
+  @@index([deadline])
+  @@index([createdAt])
+  @@index([status, deadline])
 }
 
 model TaskLog {
@@ -57,6 +63,10 @@ model TaskLog {
   userId      String?
   task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Department {

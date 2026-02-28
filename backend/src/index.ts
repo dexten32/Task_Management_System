@@ -6,12 +6,18 @@ const server = app.listen(PORT, () => {
 });
 
 import prisma from "./config/prisma";
+import { initWorker } from "./workers/taskWorker";
+
+// Start background workers
+const worker = initWorker();
 
 const gracefulShutdown = async () => {
     console.log('Received kill signal, shutting down gracefully');
-    server.close(() => {
+    server.close(async () => {
         console.log('Closed out remaining connections');
-        prisma.$disconnect();
+        await worker.close();
+        console.log('Worker shut down');
+        await prisma.$disconnect();
         process.exit(0);
     });
 

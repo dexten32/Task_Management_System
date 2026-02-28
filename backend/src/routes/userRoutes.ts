@@ -15,6 +15,7 @@ import {
 import { authenticateJWT } from "../middlewares/authMiddleware";
 import { allowRoles } from "../middlewares/roleMiddleware";
 import prisma from "../config/prisma";
+import { authLimiter } from "../middlewares/rateLimiter";
 
 const router = express.Router();
 
@@ -25,8 +26,8 @@ const asyncHandler =
       Promise.resolve(fn(req, res, next)).catch(next);
 
 // Public routes
-router.post("/signup", signup);
-router.post("/login", login as RequestHandler);
+router.post("/signup", authLimiter, signup);
+router.post("/login", authLimiter, login as RequestHandler);
 
 // Authenticated routes
 router.get(

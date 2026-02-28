@@ -82,7 +82,7 @@ export default function TaskLogDisplay({
       <h2 className="text-lg font-semibold mb-4 text-slate-800 flex items-center gap-2">
         Task Logs
         <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-          {task.logs.length}
+          {(task.logs || []).length}
         </span>
       </h2>
 
@@ -113,14 +113,14 @@ export default function TaskLogDisplay({
       {/* Log Display Area */}
       <div className="space-y-0 relative">
         {/* Vertical Line for Timeline */}
-        {task.logs.length > 0 && <div className="absolute left-2.5 top-2 bottom-2 w-px bg-slate-200"></div>}
+        {(task.logs || []).length > 0 && <div className="absolute left-2.5 top-2 bottom-2 w-px bg-slate-200"></div>}
 
-        {task.logs.length === 0 ? (
+        {(task.logs || []).length === 0 ? (
           <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-200">
             <p className="text-slate-500 text-sm">No activity logs recorded yet.</p>
           </div>
         ) : (
-          [...task.logs]
+          [...(task.logs || [])]
             .sort(
               (a, b) =>
                 new Date(b.createdAt).getTime() -

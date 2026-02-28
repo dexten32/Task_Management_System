@@ -198,7 +198,7 @@ export default function CurrentTasksSection() {
   );
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-6 bg-slate-50">
       <h2 className="text-3xl font-bold mb-6 text-gray-700">
         My Current Tasks
       </h2>

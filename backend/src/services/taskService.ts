@@ -90,11 +90,34 @@ export const createTask = async (data: CreateTaskData) => {
 export const updateTaskStatusInDB = async (
   taskId: string,
   newStatus: TaskStatus,
+  newDeadline?: Date,
 ) => {
   return prisma.task.update({
     where: { id: taskId },
     data: {
       status: newStatus,
+      ...(newDeadline && { deadline: newDeadline }),
+    },
+    include: {
+      priority: {
+        select: { code: true, name: true, color: true },
+      },
+      logs: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          user: { select: { name: true, role: true } },
+        },
+      },
+      assignedBy: {
+        select: { id: true, name: true },
+      },
+      assignees: {
+        include: {
+          department: true,
+        },
+      },
     },
   });
 };

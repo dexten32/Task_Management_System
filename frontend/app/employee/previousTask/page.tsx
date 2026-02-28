@@ -259,7 +259,7 @@ export default function PreviousTasksSection() {
                       )}
                     </div>
                     <h3 className="text-xl font-semibold text-blue-700 leading-tight mb-3">
-                      {task.title?.toUpperCase() ?? "UNTITLED TASK"}
+                      {task.title ?? "UNTITLED TASK"}
                     </h3>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-3">
                       {task.description || "No description provided."}
