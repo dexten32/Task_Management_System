@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import ReCAPTCHA from "react-google-recaptcha";
 
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -33,10 +32,8 @@ export default function ServiceCompanyLanding() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState("");
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [retryAfter, setRetryAfter] = useState<number | null>(null);
-  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   // Handle retry countdown
   useEffect(() => {
@@ -52,12 +49,8 @@ export default function ServiceCompanyLanding() {
     return () => clearInterval(interval);
   }, [retryAfter]);
 
-  // Reset ReCAPTCHA and form fields when switching between Login and Signup
+  // Reset form fields when switching between Login and Signup
   useEffect(() => {
-    setCaptchaToken(null);
-    if (recaptchaRef.current) {
-      recaptchaRef.current.reset();
-    }
     setRetryAfter(null);
     setError(""); // Also clear any previous errors
     setName("");
@@ -75,19 +68,12 @@ export default function ServiceCompanyLanding() {
     setIsLoading(true);
 
     if (isLogin) {
-      // Enforce CAPTCHA to bypass lockout
-      if (!captchaToken) {
-        setError("Please complete the ReCAPTCHA verification to sign in");
-        setIsLoading(false);
-        return;
-      }
-
       try {
         const response = await fetch(`${API_BASE_URL}/api/users/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ email, password, captchaToken }),
+          body: JSON.stringify({ email, password }),
         });
 
         if (!response.ok) {
@@ -138,18 +124,11 @@ export default function ServiceCompanyLanding() {
         return;
       }
 
-      // Enforce CAPTCHA for signup
-      if (!captchaToken) {
-        setError("Please complete the ReCAPTCHA verification");
-        setIsLoading(false);
-        return;
-      }
-
       try {
         const response = await fetch(`${API_BASE_URL}/api/users/signup`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password, captchaToken }),
+          body: JSON.stringify({ name, email, password }),
         });
 
         if (!response.ok) {
@@ -531,16 +510,6 @@ export default function ServiceCompanyLanding() {
                           </p>
                         </div>
                       )}
-
-                      <div className="flex justify-center w-full overflow-hidden">
-                        <div className="transform scale-110 origin-center py-2">
-                          <ReCAPTCHA
-                            ref={recaptchaRef}
-                            sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
-                            onChange={(token) => setCaptchaToken(token)}
-                          />
-                        </div>
-                      </div>
 
                       <Button
                         type="submit"

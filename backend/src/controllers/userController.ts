@@ -36,29 +36,8 @@ dotenv.config();
 // Signup
 export const signup = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, role, approved, departmentId, captchaToken } = req.body;
+    const { name, email, password, role, approved, departmentId } = req.body;
 
-    // Verify ReCAPTCHA
-    /*
-    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-    if (secretKey) {
-      if (!captchaToken) {
-        return res.status(400).json({ message: "ReCAPTCHA token is missing" });
-      }
-
-      const verificationUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${captchaToken}`;
-      const captchaResponse = await fetch(verificationUrl, { method: "POST" });
-      const captchaData = await captchaResponse.json();
-
-      if (!captchaData.success) {
-        return res.status(400).json({ message: "ReCAPTCHA verification failed" });
-      }
-    } else {
-      console.warn(
-        "RECAPTCHA_SECRET_KEY not found in env, skipping verification."
-      );
-    }
-    */
     const user = await registerUser(
       name,
       email,
@@ -122,36 +101,9 @@ export const createUser = async (req: Request, res: Response) => {
 // Login
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password, captchaToken } = req.body;
+    const { email, password } = req.body;
 
-    // --- 1. Verify ReCAPTCHA first to prevent delay weaponization ---
-    let captchaPassed = false;
-    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-    if (secretKey) {
-      if (!captchaToken) {
-        return res.status(400).json({ message: "ReCAPTCHA token is missing" });
-      }
-
-      const verificationUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${captchaToken}`;
-      try {
-        const captchaResponse = await fetch(verificationUrl, { method: "POST" });
-        const captchaData = await captchaResponse.json();
-
-        if (!captchaData.success) {
-          return res.status(400).json({ message: "ReCAPTCHA verification failed" });
-        }
-        captchaPassed = true; // CAPTCHA verified, true human
-      } catch (err) {
-        console.error("ReCAPTCHA verification error:", err);
-        return res.status(500).json({ message: "Error verifying ReCAPTCHA" });
-      }
-    } else {
-      console.warn("RECAPTCHA_SECRET_KEY not found in env, skipping verification.");
-      // If we don't have a key, we arbitrarily treat it as passed to bypass locks, 
-      // or we can allow the progressive delay to hit. Let's allow the delay if no key exists.
-    }
-
-    // --- 2. Progressive Delay Logic ---
+    // --- 1. Progressive Delay Logic ---
     const normalizedEmail = email ? email.toLowerCase() : "";
     const redisKey = `login_fails:${normalizedEmail}`;
     let failedAttempts = 0;
@@ -164,11 +116,9 @@ export const login = async (req: Request, res: Response) => {
         // Calculate progressive delay: attempts * 1000ms, max 15 seconds
         const delayMs = Math.min(failedAttempts * 1000, 15000);
 
-        if (delayMs > 0 && !captchaPassed) {
-          console.log(`Applying progressive delay of ${delayMs}ms for ${normalizedEmail} (No CAPTCHA bypassed)`);
+        if (delayMs > 0) {
+          console.log(`Applying progressive delay of ${delayMs}ms for ${normalizedEmail}`);
           await new Promise((resolve) => setTimeout(resolve, delayMs));
-        } else if (delayMs > 0 && captchaPassed) {
-          console.log(`Bypassing progressive delay of ${delayMs}ms for ${normalizedEmail} (Valid CAPTCHA)`);
         }
       }
     } catch (redisError) {

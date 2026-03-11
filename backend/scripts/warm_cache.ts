@@ -23,18 +23,18 @@ async function warmCache() {
         console.log("Warming up /api/tasks/recent (page=1, limit=10)...");
         const recentRes = await fetch(`${API_BASE_URL}/api/tasks/recent?page=1&limit=10`, { headers });
         if (recentRes.ok) {
-            console.log("✅ /api/tasks/recent cache warmed.");
+            console.log("/api/tasks/recent cache warmed.");
         } else {
-            console.warn("⚠️ Failed to warm /api/tasks/recent. Status:", recentRes.status);
+            console.warn("Failed to warm /api/tasks/recent. Status:", recentRes.status);
         }
 
         // 2. Warm up My Tasks (Page 1)
         console.log("Warming up /api/tasks/my-tasks (page=1, limit=10)...");
         const myTasksRes = await fetch(`${API_BASE_URL}/api/tasks/my-tasks?page=1&limit=10`, { headers });
         if (myTasksRes.ok) {
-            console.log("✅ /api/tasks/my-tasks cache warmed.");
+            console.log("/api/tasks/my-tasks cache warmed.");
         } else {
-            console.warn("⚠️ Failed to warm /api/tasks/my-tasks. Status:", myTasksRes.status);
+            console.warn("Failed to warm /api/tasks/my-tasks. Status:", myTasksRes.status);
         }
 
         console.log("Cache warm-up complete!");
