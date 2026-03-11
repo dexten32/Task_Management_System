@@ -160,12 +160,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Background Decorators */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-          <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-gradient-to-br from-indigo-200/20 to-purple-200/20 blur-3xl"></div>
-          <div className="absolute top-[20%] -right-[5%] w-[30%] h-[50%] rounded-full bg-gradient-to-br from-blue-200/20 to-cyan-200/20 blur-3xl"></div>
-          <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[40%] rounded-full bg-gradient-to-br from-purple-200/20 to-indigo-200/20 blur-3xl"></div>
-        </div>
+        {/* Background Glow - Using a cleaner radial gradient to avoid rendering artifacts */}
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: 'radial-gradient(circle at 0% 0%, rgba(199, 210, 254, 0.15) 0%, transparent 40%), radial-gradient(circle at 100% 50%, rgba(186, 230, 253, 0.15) 0%, transparent 40%)'
+          }}
+        />
         {/* Top Navbar */}
         <header className="bg-slate-900 border-b border-slate-800 shadow-sm z-10 sticky top-0">
           <div className="flex items-center justify-between px-4 lg:px-6 py-4">

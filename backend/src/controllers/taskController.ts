@@ -7,6 +7,10 @@ import {
 import dotenv from "dotenv";
 import { getPreviousTasksByUser } from "../services/taskService";
 import { Prisma, TaskStatus } from "@prisma/client";
+import redis from "../config/redis";
+import { addJobToQueue } from "../queues/taskQueue";
+
+const CACHE_TTL = 600; // 10 minutes (in seconds)
 
 declare module "express-serve-static-core" {
   interface Request {
@@ -128,6 +132,19 @@ export const assignTask = async (req: Request, res: Response) => {
       },
     });
 
+    // Invalidate caches
+    await redis.del("recent_tasks:ADMIN");
+    assigneeIds.forEach((id: string) => redis.del(`my_tasks:${id}`));
+
+    // Dispatch background job for email notifications
+    assigneeIds.forEach((id: string) => {
+      addJobToQueue("send-email", {
+        taskId: newTask.id,
+        to: id,
+        subject: `New Task Assigned: ${newTask.title}`,
+      });
+    });
+
     res.status(201).json({
       message: "Task assigned successfully",
       task: newTask,
@@ -142,8 +159,21 @@ export const assignTask = async (req: Request, res: Response) => {
 
 export const getTasksController = async (req: Request, res: Response) => {
   try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+    const skip = (page - 1) * limit;
+
     const tasks = await prisma.task.findMany({
-      include: {
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        readableId: true,
+        title: true,
+        status: true,
+        deadline: true,
+        priorityId: true,
+        createdAt: true,
         priority: {
           select: {
             code: true,
@@ -161,7 +191,7 @@ export const getTasksController = async (req: Request, res: Response) => {
       },
       orderBy: { createdAt: "desc" }
     });
-    res.json({ tasks });
+    res.json({ tasks, page, limit });
   } catch (error: any) {
     res
       .status(500)
@@ -175,6 +205,8 @@ export const getRecentTasks = async (req: Request, res: Response) => {
 
   try {
     let whereClause: any = {};
+    let cacheKey = "recent_tasks:";
+
     if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
       whereClause = {
         OR: [
@@ -182,14 +214,45 @@ export const getRecentTasks = async (req: Request, res: Response) => {
           { assignees: { some: { departmentId: reqUser.departmentId } } }
         ]
       };
-    } else if (reqUser?.role !== "ADMIN") {
+      cacheKey += `MANAGER:${reqUser.departmentId}`;
+    } else if (reqUser?.role === "ADMIN") {
+      cacheKey += "ADMIN";
+    } else {
       whereClause = { assignedById: adminId };
+      cacheKey += `USER:${adminId}`;
     }
 
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+    const skip = (page - 1) * limit;
+
+    // Cache ONLY first default page to keep invalidation keys predictable
+    const shouldCache = page === 1 && limit === 10;
+
+    if (shouldCache) {
+      const startTime = performance.now();
+      const cachedTasks = await redis.get(cacheKey);
+      if (cachedTasks) {
+        const redisLatency = performance.now() - startTime;
+        console.log(`[Cache HIT] Redis Latency: ${redisLatency.toFixed(2)}ms | Key: ${cacheKey}`);
+        return res.json(JSON.parse(cachedTasks));
+      }
+    }
+
+    const dbStartTime = performance.now();
     const tasks = await prisma.task.findMany({
       where: whereClause,
+      skip,
+      take: limit,
       orderBy: { createdAt: "desc" },
-      include: {
+      select: {
+        id: true,
+        readableId: true,
+        title: true,
+        status: true,
+        deadline: true,
+        priorityId: true,
+        createdAt: true,
         priority: {
           select: { code: true, name: true, color: true },
         },
@@ -206,7 +269,17 @@ export const getRecentTasks = async (req: Request, res: Response) => {
       },
     });
 
-    return res.json({ tasks });
+    const dbLatency = performance.now() - dbStartTime;
+    const response = { tasks, page, limit };
+
+    if (shouldCache) {
+      console.log(`[Cache MISS] DB Latency: ${dbLatency.toFixed(2)}ms | Key: ${cacheKey}`);
+      await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(response));
+    } else {
+      console.log(`[DB Query] Page ${page} (Limit ${limit}) | DB Latency: ${dbLatency.toFixed(2)}ms`);
+    }
+
+    return res.json(response);
   } catch (error: any) {
     res
       .status(500)
@@ -217,7 +290,26 @@ export const getRecentTasks = async (req: Request, res: Response) => {
 export const getMyTasks = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+    const skip = (page - 1) * limit;
+
+    const cacheKey = `my_tasks:${userId}`;
+    const shouldCache = page === 1 && limit === 10;
+
+    if (shouldCache) {
+      const startTime = performance.now();
+      const cachedData = await redis.get(cacheKey);
+      if (cachedData) {
+        const redisLatency = performance.now() - startTime;
+        console.log(`[Cache HIT] Redis Latency: ${redisLatency.toFixed(2)}ms | Key: ${cacheKey}`);
+        return res.json(JSON.parse(cachedData));
+      }
+    }
+
+    const dbStartTime = performance.now();
     const tasks = await prisma.task.findMany({
       where: {
         assignees: {
@@ -227,7 +319,16 @@ export const getMyTasks = async (req: Request, res: Response) => {
         },
         OR: [{ status: TaskStatus.ACTIVE }, { status: TaskStatus.DELAYED }, { status: TaskStatus.COMPLETED }]
       },
-      include: {
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        readableId: true,
+        title: true,
+        status: true,
+        deadline: true,
+        priorityId: true,
+        createdAt: true,
         priority: {
           select: { code: true, name: true, color: true },
         },
@@ -238,9 +339,20 @@ export const getMyTasks = async (req: Request, res: Response) => {
           select: { name: true, id: true },
         },
       },
+      orderBy: { createdAt: "desc" },
     });
 
-    res.json(tasks);
+    const dbLatency = performance.now() - dbStartTime;
+    const response = { tasks, page, limit };
+
+    if (shouldCache) {
+      console.log(`[Cache MISS] DB Latency: ${dbLatency.toFixed(2)}ms | Key: ${cacheKey}`);
+      await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(response));
+    } else {
+      console.log(`[DB Query] Page ${page} (Limit ${limit}) | DB Latency: ${dbLatency.toFixed(2)}ms`);
+    }
+
+    res.json(response);
   } catch (error: any) {
     res
       .status(500)
@@ -255,10 +367,13 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
     if (!adminId) {
       return res.status(400).json({ error: "Missing adminId" });
     }
+    const page = parseInt(req.query.page as string) || 1;
     const limit = Math.min(
-      req.query.limit ? parseInt(req.query.limit as string, 10) : 3,
-      3,
+      req.query.limit ? parseInt(req.query.limit as string, 10) : 10,
+      100,
     );
+    const skip = (page - 1) * limit;
+
     const assigneeId = req.query.userId as string | undefined;
     const departmentId = req.query.departmentId as string | undefined;
     const assignedByUserId = req.query.assignedByUserId as string | undefined;
@@ -288,11 +403,19 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
           }
         ]
       },
+      skip,
       take: limit,
       orderBy: {
         deadline: "asc",
       },
-      include: {
+      select: {
+        id: true,
+        readableId: true,
+        title: true,
+        status: true,
+        deadline: true,
+        priorityId: true,
+        createdAt: true,
         priority: {
           select: { code: true, name: true, color: true },
         },
@@ -307,7 +430,7 @@ export const getDelayedTasks = async (req: Request, res: Response) => {
         },
       },
     });
-    res.status(200).json({ tasks });
+    res.status(200).json({ tasks, page, limit });
   } catch (error: any) {
     console.error("Error fetching delayed tasks:", error);
     res.status(500).json({
@@ -330,6 +453,16 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
   }
 
   try {
+    const { deadline } = req.body;
+    let deadlineDate: Date | undefined;
+
+    if (deadline) {
+      deadlineDate = new Date(deadline);
+      if (isNaN(deadlineDate.getTime())) {
+        return res.status(400).json({ error: "Invalid deadline format" });
+      }
+    }
+
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: { assignees: true },
@@ -354,7 +487,19 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
         .json({ message: "You are not authorized to update this task." });
     }
 
-    const updatedTask = await updateTaskStatusInDB(taskId, status);
+    // Role-based restriction: Only Admin and Manager can reactivate tasks (set status to ACTIVE)
+    if (status === TaskStatus.ACTIVE && !isAdminOrManager) {
+      return res
+        .status(403)
+        .json({ message: "Only Admin or Manager can reactivate a task." });
+    }
+
+    const updatedTask = await updateTaskStatusInDB(taskId, status, deadlineDate);
+
+    // Invalidate caches
+    await redis.del("recent_tasks:ADMIN");
+    task.assignees.forEach(a => redis.del(`my_tasks:${a.id}`));
+
     return res
       .status(200)
       .json({ message: "Task status updated", task: updatedTask });
@@ -384,8 +529,8 @@ export const getTaskLimit = async (req: Request, res: Response) => {
   const reqUser = req.user as any;
   const adminId = reqUser?.id;
   const limit = Math.min(
-    req.query.limit ? parseInt(req.query.limit as string, 10) : 3,
-    3,
+    req.query.limit ? parseInt(req.query.limit as string, 10) : 10,
+    100,
   );
   const assigneeId = req.query.userId as string | undefined;
   const departmentId = req.query.departmentId as string | undefined;
@@ -396,16 +541,16 @@ export const getTaskLimit = async (req: Request, res: Response) => {
   }
 
   let baseWhere: any = {};
-    if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
-      baseWhere = {
-        OR: [
-          { assignedById: adminId },
-          { assignees: { some: { departmentId: reqUser.departmentId } } }
-        ]
-      };
-    } else if (reqUser?.role !== "ADMIN") {
-      baseWhere = { assignedById: adminId };
-    }
+  if (reqUser?.role === "MANAGER" && reqUser?.departmentId) {
+    baseWhere = {
+      OR: [
+        { assignedById: adminId },
+        { assignees: { some: { departmentId: reqUser.departmentId } } }
+      ]
+    };
+  } else if (reqUser?.role !== "ADMIN") {
+    baseWhere = { assignedById: adminId };
+  }
 
   const tasks = await prisma.task.findMany({
     where: {
@@ -414,11 +559,11 @@ export const getTaskLimit = async (req: Request, res: Response) => {
         {
           ...(assigneeId && { assignees: { some: { id: assigneeId } } }),
           ...(departmentId && !assigneeId && { assignees: { some: { departmentId } } }),
-            ...(assignedByUserId && { assignedById: assignedByUserId }),
-          }
-        ]
-      },
-      take: limit,
+          ...(assignedByUserId && { assignedById: assignedByUserId }),
+        }
+      ]
+    },
+    take: limit,
     orderBy: {
       createdAt: "desc",
     },
