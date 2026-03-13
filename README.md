@@ -10,6 +10,58 @@ The system follows a modern decoupled architecture:
 - **Database**: MySQL database, managed and queried via Prisma ORM for type-safe data access.
 - **Caching & Queues**: Redis is utilized for both rate limiting and managing background job queues via BullMQ.
 
+## 📊 Architecture Diagram
+```mermaid
+graph TD
+    User((User))
+    subgraph "Frontend (Next.js)"
+        UI[UI Components]
+        Store[State Management]
+    end
+    subgraph "Backend (Node.js/Express)"
+        API[REST API]
+        Auth[JWT Auth]
+        Limit[Rate Limiter]
+        Worker[BullMQ Workers]
+    end
+    subgraph "Data Layer"
+        DB[(MySQL Database)]
+        Redis[(Redis Cache/Queue)]
+    end
+
+    User <--> UI
+    UI <--> API
+    API --> Auth
+    API --> Limit
+    Limit <--> Redis
+    API <--> DB
+    API --> Redis
+    Redis <--> Worker
+    Worker <--> DB
+```
+
+## 🔄 System Request Flow
+1.  **Request Initiation**: Client sends an HTTP request (e.g., `GET /api/tasks`) with a JWT in the `Authorization` header.
+2.  **Rate Limiting**: `rate-limiter-flexible` (Redis-backed) checks if the request exceeds thresholds.
+3.  **Authentication**: `authenticateJWT` middleware verifies the token signature and expiration.
+4.  **RBAC Authorization**: `allowRoles` middleware ensures the user has sufficient permissions for the requested resource.
+5.  **Service Logic**: The controller handles the business logic, interacting with the Database via Prisma.
+6.  **Queueing (Optional)**: If the task is long-running (e.g., report generation), it's added to a BullMQ Redis queue for background processing.
+7.  **Response**: The server returns a JSON response to the client.
+
+## 🗄️ Database Schema
+The system uses a relational schema managed by Prisma:
+
+- **User**: Stores identity, credentials, role (`ADMIN`, `MANAGER`, `EMPLOYEE`), and department affiliation.
+- **Task**: Main entity for tracking work. Includes title, description, deadline, priority, and status.
+- **TaskLog**: Audit trail for task updates.
+- **Priority**: Configurable priority levels (e.g., Critical, High, Medium, Low) with colors and ordering.
+- **Department**: Organizational units for scoping user and task access.
+
+Relationships:
+- **One-to-Many**: `Department` has many `Users`. `User` (as creator) has many `Tasks`.
+- **Many-to-Many**: `Task` can have multiple assignees (`Users`).
+
 ## 🛠️ Tech Stack
 
 ### Frontend
@@ -68,6 +120,18 @@ Heavy, asynchronous tasks are delegated to background workers using **BullMQ** a
 - **Job Types**: Currently implements simulated tasks like `send-email` and `generate-report`.
 - **Resilience**: Features exponential backoff on retries (3 attempts with 2s, 4s, 8s delays) and automatic clean-up of successful jobs while retaining failed ones for debugging.
 
+## 📈 Load Testing Results
+Tests conducted using `k6` on 2026-02-27.
+
+| Test Type | Metric | Performance | Status |
+|---|---|---|---|
+| **Load Test** | p(95) Duration | 456ms | ✅ PASS |
+| **Soak Test** | Stability | 100% Succeeded (9978 reqs) | ✅ PASS |
+| **Stress Test** | Max Throughput | ~31 reqs/s (6535 reqs) | ✅ PASS |
+| **Spike Test** | Recovery | Handled 500 VUs with recovery | ✅ PASS |
+
+*Note: Spike tests showed some failures at 500 VUs, indicating scaling limits for single-node deployment.*
+
 ## 🚀 Setup Instructions
 
 ### Prerequisites
@@ -96,8 +160,13 @@ npm install
 npm run dev            # Starts the Next.js server on port 3000
 ```
 
-### 4. Running via Docker (Optional)
-If you prefer running via Docker, navigate to `/frontend` and view `README.Docker.md` for specific instructions:
-```bash
-docker compose up --build
-```
+### 4. Production Deployment
+The application is containerized for consistent deployment:
+
+1.  **Build Image**: `docker build -t tms-backend ./backend`
+2.  **Environment**: Ensure `.env` files are populated with production credentials.
+3.  **Compose**: Use the provided `compose.yaml` for orchestrated startup:
+    ```bash
+    docker compose up -d
+    ```
+4.  **Scaling**: The backend can be scaled horizontally; however, sticky sessions or token-based auth (current) is required. Redis and MySQL should be managed as highly available services in production (e.g., AWS RDS, ElastiCache).
