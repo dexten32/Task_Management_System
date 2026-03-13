@@ -10,6 +10,25 @@ The system follows a modern decoupled architecture:
 - **Database**: MySQL database, managed and queried via Prisma ORM for type-safe data access.
 - **Caching & Queues**: Redis is utilized for both rate limiting and managing background job queues via BullMQ.
 
+## 📁 Folder Architecture
+A clean, modular structure ensures scalability and maintainability:
+
+```text
+backend/
+ ├── src/
+ │   ├── controllers/    # Request handling & business logic
+ │   ├── routes/         # API endpoint definitions
+ │   ├── middlewares/    # Auth, RBAC, Rate limiting
+ │   ├── services/       # Database & external service abstraction
+ │   ├── queues/         # BullMQ queue definitions
+ │   ├── workers/        # Background job processors
+ │   ├── utils/          # Shared helpers & constants
+ │   ├── app.ts          # Express application setup
+ │   └── index.ts        # Server entry point
+ ├── prisma/             # Database schema & migrations
+ └── tests/              # k6 performance & unit tests
+```
+
 ## 📊 Architecture Diagram
 ```mermaid
 graph TD
@@ -50,17 +69,32 @@ graph TD
 7.  **Response**: The server returns a JSON response to the client.
 
 ## 🗄️ Database Schema
-The system uses a relational schema managed by Prisma:
+The system uses a relational schema managed by Prisma. Below are the core models:
 
-- **User**: Stores identity, credentials, role (`ADMIN`, `MANAGER`, `EMPLOYEE`), and department affiliation.
-- **Task**: Main entity for tracking work. Includes title, description, deadline, priority, and status.
-- **TaskLog**: Audit trail for task updates.
-- **Priority**: Configurable priority levels (e.g., Critical, High, Medium, Low) with colors and ordering.
-- **Department**: Organizational units for scoping user and task access.
+```prisma
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  password     String?     // Hashed via bcrypt
+  role         Role        @default(EMPLOYEE)
+  departmentId String?
+  approved     Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+}
 
-Relationships:
-- **One-to-Many**: `Department` has many `Users`. `User` (as creator) has many `Tasks`.
-- **Many-to-Many**: `Task` can have multiple assignees (`Users`).
+model Task {
+  id           String     @id @default(cuid())
+  title        String
+  description  String
+  deadline     DateTime
+  status       TaskStatus @default(PENDING)
+  priorityId   Int?
+  assignedById String
+  assignees    User[]     @relation("TaskAssignees")
+}
+```
+
+*Key Relationships: A `Department` has many `Users`, and a `Task` can have multiple `User` assignees.*
 
 ## 🛠️ Tech Stack
 
@@ -130,7 +164,10 @@ Tests conducted using `k6` on 2026-02-27.
 | **Stress Test** | Max Throughput | ~31 reqs/s (6535 reqs) | ✅ PASS |
 | **Spike Test** | Recovery | Handled 500 VUs with recovery | ✅ PASS |
 
-*Note: Spike tests showed some failures at 500 VUs, indicating scaling limits for single-node deployment.*
+### Context & Interpretation
+Stress and Spike tests were performed on a **single-node development environment**.
+- **Local Benchmarking**: Throughput (~31 reqs/s) is primarily limited by the Node.js event loop and local MySQL/Redis resource contention.
+- **Scaling Potential**: In a production environment with horizontal scaling (multiple instances) and a dedicated database cluster, the system is designed to handle significantly higher loads.
 
 ## 🚀 Setup Instructions
 
@@ -170,3 +207,12 @@ The application is containerized for consistent deployment:
     docker compose up -d
     ```
 4.  **Scaling**: The backend can be scaled horizontally; however, sticky sessions or token-based auth (current) is required. Redis and MySQL should be managed as highly available services in production (e.g., AWS RDS, ElastiCache).
+
+## 🌍 Production Environment
+For optimal performance and reliability, the following production stack is recommended:
+
+- **Frontend**: Next.js (Deployed on Vercel or AWS Amplify)
+- **Backend**: Node.js managed by **PM2** for process management and auto-restart.
+- **Reverse Proxy**: **Nginx** for SSL termination, load balancing, and static asset caching.
+- **Database**: Managed **MySQL** instance.
+- **Queue System**: Managed **Redis** instance for BullMQ and Rate Limiting.
