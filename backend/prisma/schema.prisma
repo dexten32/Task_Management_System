@@ -57,7 +57,7 @@ model Task {
 
 model TaskLog {
   id          String   @id @default(cuid())
-  description String
+  description String   @db.Text
   createdAt   DateTime @default(now())
   taskId      String
   userId      String?
