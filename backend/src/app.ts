@@ -22,15 +22,28 @@ app.use(express.json());
 // Apply global rate limiting to all requests
 app.use(globalLimiter);
 
-app.use(
-  cors({
-    origin: [
+// CORS Configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : [
       "http://localhost:3000",
       "http://192.168.1.37:3000",
       "http://192.168.1.34:3000",
       "https://tmsync.in",
       "https://www.tmsync.in",
-    ], // Allow both frontend URLs
+    ];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.some(o => o.includes('*') && new RegExp(o.replace('*', '.*')).test(origin))) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
