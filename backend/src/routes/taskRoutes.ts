@@ -15,71 +15,30 @@ import {
 } from "../controllers/taskController";
 import { authenticateJWT } from "../middlewares/authMiddleware";
 import { allowRoles } from "../middlewares/roleMiddleware";
-import { Request, Response, NextFunction } from "express";
-import { get } from "http";
+import { asyncHandler } from "../utils/asyncHandler";
 
 const router = express.Router();
-
-// Helper to wrap async route handlers
-function asyncHandler(
-  fn: (
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction,
-  ) => Promise<any>,
-): express.RequestHandler {
-  return (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
-}
 
 // POST /api/tasks/assign
 router.post("/assign", authenticateJWT, allowRoles("ADMIN", "MANAGER"), asyncHandler(assignTask));
 
-// GET /api/tasks?assignedBy=xxx
-router.get("/", asyncHandler(getTasksController));
+// GET /api/tasks
+router.get("/", authenticateJWT, asyncHandler(getTasksController));
 
 // Additional routes
-router.get(`/recent`, authenticateJWT, asyncHandler(getRecentTasks));
-
-// GET /api/tasks/recentlimit
+router.get("/recent", authenticateJWT, asyncHandler(getRecentTasks));
 router.get("/recentlimit", authenticateJWT, asyncHandler(getTaskLimit));
-
-router.get("/next-id", authenticateJWT, asyncHandler(getNextTaskId as any));
-
-
+router.get("/next-id", authenticateJWT, asyncHandler(getNextTaskId));
 router.get("/my-tasks", authenticateJWT, asyncHandler(getMyTasks));
 router.get("/delayed", authenticateJWT, asyncHandler(getDelayedTasks));
 router.get("/previous", authenticateJWT, asyncHandler(getPreviousTasks));
-router.get(
-  "/dashboard-aggregate",
-  authenticateJWT,
-  asyncHandler(getDashboardAggregates),
-);
-router.get(
-  "/:id",
-  authenticateJWT,
-  asyncHandler(
-    getTaskById as unknown as (
-      req: express.Request,
-      res: express.Response,
-      next: express.NextFunction,
-    ) => Promise<any>,
-  ),
-);
+router.get("/dashboard-aggregate", authenticateJWT, asyncHandler(getDashboardAggregates));
 
-router.patch(
-  "/:taskId/status",
-  authenticateJWT,
-  asyncHandler(updateTaskStatus),
-);
+router.get("/:id", authenticateJWT, asyncHandler(getTaskById as any));
+
+router.patch("/:taskId/status", authenticateJWT, asyncHandler(updateTaskStatus));
 
 // UPDATE ASSIGNEES
-router.patch(
-  "/:taskId/assignees",
-  authenticateJWT,
-  allowRoles("ADMIN", "MANAGER"),
-  asyncHandler(updateTaskAssignees),
-);
+router.patch("/:taskId/assignees", authenticateJWT, allowRoles("ADMIN", "MANAGER"), asyncHandler(updateTaskAssignees));
 
 export default router;

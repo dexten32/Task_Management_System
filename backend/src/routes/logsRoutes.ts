@@ -2,7 +2,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import { addLog } from "../controllers/logsController";
 import { authenticateJWT } from "../middlewares/authMiddleware";
-import asyncHandler from "../utils/asyncHandler";
+import { asyncHandler } from "../utils/asyncHandler";
 
 const router = express.Router();
 

@@ -81,3 +81,67 @@ export const getAllUsersFromDB = async () => {
     throw new Error("Failed to fetch users from the database");
   }
 };
+
+export const getPendingUsersFromDB = async (whereClause: any) => {
+  return await prisma.user.findMany({
+    where: whereClause,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      departmentId: true,
+      department: { select: { id: true, name: true } },
+    },
+  });
+};
+
+export const getUserById = async (id: string) => {
+  return await prisma.user.findUnique({ where: { id } });
+};
+
+export const approveUserInDB = async (userId: string) => {
+  return await prisma.user.update({
+    where: { id: userId },
+    data: { approved: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      approved: true,
+      departmentId: true,
+      department: { select: { id: true, name: true } },
+    },
+  });
+};
+
+export const deleteUserInDB = async (userId: string) => {
+  return await prisma.user.delete({
+    where: { id: userId },
+  });
+};
+
+export const updateUserInDB = async (userId: string, data: { departmentId: string; role: any }) => {
+  return await prisma.user.update({
+    where: { id: userId },
+    data,
+    include: {
+      department: true,
+    },
+  });
+};
+
+export const getUserWithDeptFlow = async (userId: string) => {
+  return await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      department: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+};
