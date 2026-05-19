@@ -1,41 +1,33 @@
-import { Worker, Job } from "bullmq";
-import redis from "../config/redis";
+import { logger } from "../utils/logger";
 
 // Simulated Delay Helper
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-export const initWorker = () => {
-    const worker = new Worker("background-jobs", async (job: Job) => {
-        switch (job.name) {
+export const processBackgroundJob = async (jobName: string, jobData: any) => {
+    try {
+        switch (jobName) {
             case "send-email":
-                console.log(`[Worker] Started processing 'send-email' for ${job.data.to}`);
+                logger.info(`[Worker] Started processing 'send-email' for ${jobData.to}`);
                 // Simulate email API latency (e.g. SendGrid or AWS SES)
                 await delay(1500);
-                console.log(`[Worker] Finished 'send-email' successfully!`);
+                logger.info(`[Worker] Finished 'send-email' successfully!`);
                 break;
 
             case "generate-report":
-                console.log(`[Worker] Started 'generate-report' for department ${job.data.dept}`);
+                logger.info(`[Worker] Started 'generate-report' for department ${jobData.dept}`);
                 // Simulate heavy PDF generation or complex aggregation
                 await delay(5000);
-                console.log(`[Worker] Finished 'generate-report'!`);
+                logger.info(`[Worker] Finished 'generate-report'!`);
                 break;
 
             default:
-                console.warn(`[Worker] Unknown job type: ${job.name}`);
+                logger.warn(`[Worker] Unknown job type: ${jobName}`);
         }
-    }, {
-        connection: redis,
-        concurrency: 5, // Process up to 5 jobs simultaneously
-    });
+    } catch (err: any) {
+        logger.error(`[Worker Event] Job ${jobName} failed`, err);
+    }
+};
 
-    worker.on("completed", (job) => {
-        console.log(`[Worker Event] Job ${job.id} has completed.`);
-    });
-
-    worker.on("failed", (job, err) => {
-        console.error(`[Worker Event] Job ${job?.id} failed with error ${err.message}`);
-    });
-
-    return worker;
+export const initWorker = () => {
+    logger.info("[Worker] In-memory worker initialized.");
 };

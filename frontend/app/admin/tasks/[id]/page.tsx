@@ -7,7 +7,7 @@ export default async function AdminTaskDetailPage(props: {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold text-gray-600 mb-6">
+      <h1 className="text-3xl font-bold text-muted-foreground mb-6">
         Task Details (Admin View)
       </h1>
       <ClientTaskDetail taskId={params.id} />

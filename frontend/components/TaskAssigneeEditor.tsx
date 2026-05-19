@@ -138,11 +138,11 @@ export default function TaskAssigneeEditor({
     return (
         <div className="mt-6">
             <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Assignees</h3>
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">Assignees</h3>
                 {canEdit && !isEditing && (
                     <button
                         onClick={handleEditClick}
-                        className="text-indigo-600 hover:text-indigo-800 text-xs font-semibold flex items-center gap-1 transition-colors"
+                        className="text-primary hover:text-primary text-xs font-semibold flex items-center gap-1 transition-colors"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -156,29 +156,29 @@ export default function TaskAssigneeEditor({
                 <div className="flex flex-wrap gap-2">
                     {currentAssignees.length > 0 ? (
                         currentAssignees.map((assignee) => (
-                            <div key={assignee.id} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
-                                <div className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-[10px]">
+                            <div key={assignee.id} className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg px-3 py-1.5 shadow-sm">
+                                <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[10px]">
                                     {assignee.name.charAt(0).toUpperCase()}
                                 </div>
-                                <span className="text-sm font-medium text-slate-700">{assignee.name}</span>
+                                <span className="text-sm font-medium text-foreground/80">{assignee.name}</span>
                             </div>
                         ))
                     ) : (
-                        <span className="text-sm text-slate-500 italic bg-slate-50 py-1.5 px-3 rounded-md border border-slate-100">No assignees yet.</span>
+                        <span className="text-sm text-muted-foreground italic bg-muted/50 py-1.5 px-3 rounded-md border border-slate-100">No assignees yet.</span>
                     )}
                 </div>
             ) : (
-                <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
-                    {error && <p className="text-sm text-red-500 font-medium bg-red-50 p-2 rounded-md border border-red-100">{error}</p>}
+                <div className="space-y-4 bg-muted/50 p-4 rounded-xl border border-border shadow-sm">
+                    {error && <p className="text-sm text-red-500 font-medium bg-destructive/10 p-2 rounded-md border border-red-100">{error}</p>}
                     {isLoading ? (
-                        <p className="text-sm text-slate-500 animate-pulse">Loading available users...</p>
+                        <p className="text-sm text-muted-foreground animate-pulse">Loading available users...</p>
                     ) : (
                         <div className="space-y-4">
                             {isAdmin && departments.length > 0 && (
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Filter by Department</label>
+                                    <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Filter by Department</label>
                                     <select
-                                        className="w-full bg-white border border-slate-300 text-slate-700 text-sm rounded-md focus:ring-indigo-500 focus:border-indigo-500 block p-2"
+                                        className="w-full bg-card border border-border text-foreground/80 text-sm rounded-md focus:ring-primary focus:border-primary block p-2"
                                         value={selectedDeptId}
                                         onChange={(e) => setSelectedDeptId(e.target.value)}
                                     >
@@ -190,7 +190,7 @@ export default function TaskAssigneeEditor({
                                 </div>
                             )}
                             <div>
-                                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Select Users</label>
+                                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Select Users</label>
                                 <MultiSelect
                                     options={users
                                         .filter(user => selectedDeptId === "all" || user.departmentId === selectedDeptId)
@@ -201,7 +201,7 @@ export default function TaskAssigneeEditor({
                                     selectedIds={selectedUserIds}
                                     onChange={setSelectedUserIds}
                                     placeholder="Search & select assignees..."
-                                    className="bg-white"
+                                    className="bg-card"
                                 />
                             </div>
                         </div>
@@ -210,7 +210,7 @@ export default function TaskAssigneeEditor({
                         <Button variant="outline" size="sm" className="h-9 px-4 text-sm" onClick={handleCancelClick} disabled={isSaving}>
                             Cancel
                         </Button>
-                        <Button size="sm" className="h-9 px-5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center justify-center text-center" onClick={handleSaveClick} disabled={isSaving || isLoading}>
+                        <Button size="sm" className="h-9 px-5 bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center justify-center text-center" onClick={handleSaveClick} disabled={isSaving || isLoading}>
                             {isSaving ? (
                                 <span className="flex items-center justify-center gap-2">
                                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">

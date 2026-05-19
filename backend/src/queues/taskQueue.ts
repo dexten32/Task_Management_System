@@ -1,26 +1,18 @@
-import { Queue } from "bullmq";
-import redis from "../config/redis";
-
-// Create a queue named "background-jobs" backed by our existing ioredis connection
-export const taskQueue = new Queue("background-jobs", {
-    connection: redis,
-});
+import { processBackgroundJob } from "../workers/taskWorker";
+import { logger } from "../utils/logger";
 
 // Helper function to easily add jobs from anywhere in our app
 export const addJobToQueue = async (jobName: string, jobData: any) => {
     try {
-        const job = await taskQueue.add(jobName, jobData, {
-            removeOnComplete: true, // Keep Redis memory clean
-            removeOnFail: false,    // Keep failed jobs for inspection
-            attempts: 3,            // Retry temporary failures
-            backoff: {
-                type: "exponential",
-                delay: 2000,          // 2s, 4s, 8s
-            },
-        });
-        console.log(`[BullMQ] Added job ${job.id} - ${jobName}`);
-        return job;
+        logger.info(`[Queue] Dispatching job ${jobName}`);
+        
+        // Process asynchronously without blocking the main thread
+        setTimeout(() => {
+            processBackgroundJob(jobName, jobData);
+        }, 0);
+
+        return { id: Math.random().toString(36).substring(7) };
     } catch (error) {
-        console.error(`[BullMQ] Failed to add job ${jobName}:`, error);
+        logger.error(`[Queue] Failed to add job ${jobName}`, error);
     }
 };

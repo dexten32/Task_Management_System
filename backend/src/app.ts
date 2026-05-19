@@ -31,6 +31,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
       "http://192.168.1.34:3000",
       "https://tmsync.in",
       "https://www.tmsync.in",
+      "https://task-management-system-cyan-five.vercel.app",
     ];
 
 app.use(
@@ -63,10 +64,8 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/logs", logsRoutes);
-console.log("priorityRoutes import:", priorityRoutes);
 
 app.use("/api/priorities", priorityRoutes);
-console.log("Priority routes mounted");
 
 // 404 handler
 app.use((req, res, next) => {

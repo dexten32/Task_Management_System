@@ -118,48 +118,13 @@ export default function TaskDetailComponent({
     }
   };
 
-  // const handleMarkAsComplete = async () => {
-  //   if (!task || !token) return;
-
-  //   const now = new Date();
-  //   const deadline = new Date(task.deadline);
-  //   const newStatus: TaskStatus = now < deadline ? "COMPLETED" : "DELAYED";
-
-  //   try {
-  //     const res = await fetch(`${API_BASE_URL}/api/tasks/${task.id}/status`, {
-  //       method: "PATCH",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //       body: JSON.stringify({ status: newStatus }),
-  //     });
-
-  //     if (res.ok) {
-  //       setTask((prev) => (prev ? { ...prev, status: newStatus } : prev));
-  //       handleLogAdded({
-  //         id: Date.now().toString(),
-  //         description: `Task status changed to ${newStatus}.`,
-  //         createdAt: new Date().toISOString(),
-  //       });
-  //     } else {
-  //       const errorData = await res.json();
-  //       alert(`Failed to update task status: ${errorData.message || "Error"}`);
-  //     }
-  //   } catch {
-  //     alert("Network error. Could not update task status.");
-  //   }
-  // };
-
-  // const canModifyTask = task.status === "ACTIVE" || task.status === "PENDING";
-
   const showCompletedOrDelayedMessage =
     task.status === "COMPLETED" || task.status === "DELAYED";
 
   return (
-    <div className="bg-white rounded-2xl w-full max-h-[90vh] overflow-hidden flex flex-col font-sans">
+    <div className="bg-card rounded-2xl w-full max-h-[90vh] overflow-hidden flex flex-col font-sans">
       {/* Header - Fixed */}
-      <div className="relative pl-8 pr-16 py-6 flex-shrink-0  border-b border-slate-100">
+      <div className="relative pl-8 pr-16 py-6 flex-shrink-0 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <span
@@ -167,25 +132,22 @@ export default function TaskDetailComponent({
             >
               {TASK_STATUS_CONFIG[task.status].label}
             </span>
-            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-              {task.readableId ? `CYN-0${task.readableId}` : "N/A"}
+            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">
+              {task.readableId ? `TSK-0${task.readableId}` : "N/A"}
             </span>
             {task.priority && (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-100">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{
-                    backgroundColor: task.priority.color,
-                  }}
-                />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              <div 
+                className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full shadow-sm"
+                style={{ backgroundColor: task.priority.color }}
+              >
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider">
                   {task.priority.name}
                 </span>
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-slate-50 px-2.5 py-1 rounded-full">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-muted/50 px-2.5 py-1 rounded-full">
             <svg
               className="w-3.5 h-3.5 text-slate-400"
               fill="none"
@@ -207,11 +169,11 @@ export default function TaskDetailComponent({
           </div>
         </div>
 
-        <h1 className="text-2xl font-bold text-slate-900 mb-3 tracking-tight leading-tight">
+        <h1 className="text-2xl font-bold text-foreground mb-3 tracking-tight leading-tight">
           {task.title}
         </h1>
 
-        <p className="text-slate-500 text-sm leading-relaxed max-w-2xl">
+        <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl">
           {task.description}
         </p>
 
@@ -227,12 +189,12 @@ export default function TaskDetailComponent({
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6 bg-white custom-scrollbar">
+      <div className="flex-1 overflow-y-auto px-8 py-6 bg-card custom-scrollbar">
         <TaskLogDisplay task={task} onLogAdded={handleLogAdded} token={token} />
       </div>
 
       {/* Footer - Fixed */}
-      <div className="px-8 py-5 border-t border-slate-100 flex-shrink-0">
+      <div className="px-8 py-5 border-t border-border flex-shrink-0">
         {showCompletedOrDelayedMessage && !isReactivating && (
           <div className="flex items-center justify-between gap-4 py-1">
             <div className="flex items-center gap-2">
@@ -249,9 +211,9 @@ export default function TaskDetailComponent({
                   d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 ></path>
               </svg>
-              <span className="text-slate-600 text-sm font-medium">
+              <span className="text-muted-foreground text-sm font-medium">
                 Task marked as{" "}
-                <span className="font-bold text-slate-800">
+                <span className="font-bold text-card-foreground">
                   {task.status.toLowerCase()}
                 </span>
               </span>
@@ -259,7 +221,7 @@ export default function TaskDetailComponent({
             {canReactivate && (
               <button
                 onClick={() => setIsReactivating(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors border border-indigo-500 shadow-sm"
+                className="bg-primary hover:bg-primary/90 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors border border-primary shadow-sm"
               >
                 Reactivate Task
               </button>
@@ -270,10 +232,10 @@ export default function TaskDetailComponent({
         {isReactivating && (
           <div className="flex flex-col gap-4 py-1">
             <div className="flex items-center justify-between">
-              <span className="text-slate-800 text-sm font-bold">Set New Deadline</span>
+              <span className="text-card-foreground text-sm font-bold">Set New Deadline</span>
               <button
                 onClick={() => setIsReactivating(false)}
-                className="text-slate-400 hover:text-slate-600 text-xs font-medium"
+                className="text-slate-400 hover:text-muted-foreground text-xs font-medium"
               >
                 Cancel
               </button>
@@ -283,12 +245,12 @@ export default function TaskDetailComponent({
                 type="datetime-local"
                 value={newDeadline.slice(0, 16)} // Format for datetime-local input
                 onChange={(e) => setNewDeadline(e.target.value)}
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                className="flex-1 bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm text-foreground/80 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
               <button
                 onClick={handleReactivate}
                 disabled={reactivationLoading}
-                className={`bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-6 py-2 rounded-lg transition-all shadow-md ${reactivationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`bg-primary hover:bg-primary/90 text-white text-sm font-bold px-6 py-2 rounded-lg transition-all shadow-md ${reactivationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {reactivationLoading ? 'Processing...' : 'Confirm Reactivation'}
               </button>

@@ -4,6 +4,14 @@ import { Menu, User, Home, Users, Clipboard, LogOut, X } from "lucide-react";
 
 import { SidebarLink } from "@/components/sidebarLinkComponent";
 import API_BASE_URL from "@/lib/api";
+import { ModeToggle } from "@/components/ModeToggle";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -81,7 +89,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-background text-foreground">
       {/* Mobile Overlay */}
       {isMobile && mobileSidebarOpen && (
         <div
@@ -93,14 +101,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Sidebar - Desktop */}
       <div
         className={`${sidebarOpen ? "w-64" : "w-14"
-          } bg-slate-900 border-r border-slate-800 text-white transition-all duration-300 hidden lg:flex flex-col`}
+          } bg-card backdrop-blur-md border-r border-border text-card-foreground transition-all duration-300 hidden lg:flex flex-col`}
       >
         <div className="p-4 flex items-center justify-between">
           {sidebarOpen && (
-            <h1 className="text-xl font-bold text-white tracking-wide">Admin Panel</h1>
+            <h1 className="text-xl font-bold tracking-wide text-foreground">Admin Panel</h1>
           )}
-          <button onClick={toggleSidebar} className="p-1 text-slate-400 hover:text-white transition-colors">
-            <Menu className="h-6 w-6" />
+          <button onClick={toggleSidebar} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
+            <Menu className="h-5 w-5" />
           </button>
         </div>
         <nav className="mt-8 flex-1">
@@ -127,12 +135,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       {/* Sidebar - Mobile (Slide-in) */}
       <div
-        className={`fixed top-0 left-0 h-full w-64 bg-slate-900 border-r border-slate-800 text-white z-50 transform transition-transform duration-300 lg:hidden ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed top-0 left-0 h-full w-64 bg-card backdrop-blur-md border-r border-border text-card-foreground z-50 transform transition-transform duration-300 lg:hidden ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
-        <div className="p-4 flex items-center justify-between border-b border-slate-800">
-          <h1 className="text-xl font-bold text-white tracking-wide">Admin Panel</h1>
-          <button onClick={() => setMobileSidebarOpen(false)} className="p-1 text-slate-400 hover:text-white transition-colors">
+        <div className="p-4 flex items-center justify-between border-b border-border">
+          <h1 className="text-xl font-bold tracking-wide">Admin Panel</h1>
+          <button onClick={() => setMobileSidebarOpen(false)} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -160,54 +168,51 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Background Glow - Using a cleaner radial gradient to avoid rendering artifacts */}
-        <div
-          className="absolute inset-0 pointer-events-none z-0"
-          style={{
-            background: 'radial-gradient(circle at 0% 0%, rgba(199, 210, 254, 0.15) 0%, transparent 40%), radial-gradient(circle at 100% 50%, rgba(186, 230, 253, 0.15) 0%, transparent 40%)'
-          }}
-        />
+        <div className="absolute inset-0 -z-10 h-full w-full bg-background">
+          <div className="absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-indigo-500/10 dark:bg-cyan-500/5 blur-[120px]" />
+          <div className="absolute bottom-0 right-1/4 h-[500px] w-[500px] rounded-full bg-emerald-500/10 dark:bg-emerald-500/5 blur-[150px]" />
+        </div>
         {/* Top Navbar */}
-        <header className="bg-slate-900 border-b border-slate-800 shadow-sm z-10 sticky top-0">
+        <header className="bg-card backdrop-blur-md border-b border-border shadow-sm z-10 sticky top-0">
           <div className="flex items-center justify-between px-4 lg:px-6 py-4">
             <div className="flex items-center gap-3">
               {/* Mobile Hamburger Button */}
               <button
                 onClick={toggleSidebar}
-                className="p-1 lg:hidden text-slate-400 hover:text-white hover:bg-slate-800 rounded"
+                className="p-1 lg:hidden text-muted-foreground hover:text-foreground hover:bg-muted rounded"
               >
-                <Menu className="h-6 w-6" />
+                <Menu className="h-5 w-5" />
               </button>
-              <h2 className="text-lg lg:text-xl font-semibold text-white tracking-wide">
-                {adminName} Dashboard
-              </h2>
+              <nav className="text-sm font-medium text-muted-foreground">
+                Dashboard
+              </nav>
             </div>
 
             {/* Profile Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center space-x-2 focus:outline-none hover:bg-slate-800 p-1 pr-3 rounded-full transition-colors"
-              >
-                <div className="h-9 w-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
-                  <User className="h-5 w-5 text-slate-300" />
-                </div>
-                <span className="hidden md:inline text-slate-200 font-medium">
-                  {adminName}
-                </span>
-              </button>
-
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center w-full px-4 py-3 text-sm text-red-600 font-medium hover:bg-red-50 transition-colors"
-                  >
+            <div className="flex items-center gap-4">
+              <ModeToggle />
+              
+              <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+                <DropdownMenuTrigger className="focus:outline-none">
+                  <div className="flex items-center space-x-2 hover:bg-muted p-1 pr-3 rounded-full transition-colors cursor-pointer">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src="" />
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                        {adminName.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden md:inline text-sm font-medium">
+                      {adminName}
+                    </span>
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 cursor-pointer">
                     <LogOut className="w-4 h-4 mr-2" />
                     Logout
-                  </button>
-                </div>
-              )}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>

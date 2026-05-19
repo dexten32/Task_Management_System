@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import React from "react";
 
 export function SidebarLink({
   href,
@@ -9,7 +10,7 @@ export function SidebarLink({
   sidebarOpen,
 }: {
   href: string;
-  icon: React.ReactNode;
+  icon: React.ReactElement;
   label: string;
   sidebarOpen: boolean;
 }) {
@@ -20,14 +21,19 @@ export function SidebarLink({
     <Link href={href}>
       <div
         className={clsx(
-          "flex items-center px-4 py-3 mx-2 my-1 cursor-pointer rounded-xl font-medium transition-all duration-200",
+          "flex items-center px-4 py-2.5 mx-2 my-1 cursor-pointer rounded-md text-sm font-medium transition-all duration-200 relative",
           isActive
-            ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-            : "text-slate-400 hover:bg-slate-800 hover:text-white"
+            ? "bg-secondary text-foreground"
+            : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
         )}
       >
-        <div className="h-5 w-5">{icon}</div>
-        {sidebarOpen && <span className="ml-3">{label}</span>}
+        {isActive && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-md" />
+        )}
+        <div className="h-4 w-4 shrink-0 flex items-center justify-center">
+          {React.cloneElement(icon as React.ReactElement<any>, { className: "w-4 h-4" })}
+        </div>
+        {sidebarOpen && <span className="ml-3 truncate">{label}</span>}
       </div>
     </Link>
   );

@@ -15,8 +15,11 @@ import dotenv from "dotenv";
 import prisma from "../config/prisma";
 import { Role } from "@prisma/client";
 import { verifyToken } from "../utils/jwt";
-import redis from "../config/redis";
 import { hasManagerAccess, canModifyUser } from "../utils/authUtils";
+import { OAuth2Client } from "google-auth-library";
+import bcryptjs from "bcryptjs";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 dotenv.config();
 
@@ -62,31 +65,34 @@ export const createUser = async (req: Request, res: Response) => {
   }
 };
 
+const loginFails = new Map<string, { attempts: number, expiry: number }>();
+
 // Login
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     const normalizedEmail = email ? email.toLowerCase() : "";
-    const redisKey = `login_fails:${normalizedEmail}`;
 
     // Apply progressive delay if needed
-    try {
-      const attemptsStr = await redis.get(redisKey);
-      if (attemptsStr) {
-        const delayMs = Math.min(parseInt(attemptsStr, 10) * 1000, 15000);
+    const failData = loginFails.get(normalizedEmail);
+    if (failData) {
+      if (Date.now() > failData.expiry) {
+        loginFails.delete(normalizedEmail);
+      } else {
+        const delayMs = Math.min(failData.attempts * 1000, 15000);
         if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
-    } catch (e) {}
+    }
 
     const user = await loginUser(email, password);
 
     if (!user) {
-      await redis.incr(redisKey);
-      await redis.expire(redisKey, 900);
+      const attempts = (failData?.attempts || 0) + 1;
+      loginFails.set(normalizedEmail, { attempts, expiry: Date.now() + 900 * 1000 });
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    await redis.del(redisKey);
+    loginFails.delete(normalizedEmail);
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, approved: user.approved, departmentId: user.departmentId },
@@ -105,6 +111,71 @@ export const login = async (req: Request, res: Response) => {
     res.status(200).json({ user, token });
   } catch (error: any) {
     res.status(401).json({ message: error.message || "Login failed" });
+  }
+};
+
+// Google Login
+export const googleLogin = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.body;
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (e) {
+      // Fallback for access_token from useGoogleLogin
+      const axios = require("axios");
+      const { data } = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      payload = data;
+    }
+    
+    if (!payload || !payload.email) return res.status(401).json({ message: "Invalid Google token" });
+
+    const email = payload.email!;
+    const name = payload.name || "Google User";
+
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      const randomPassword = await bcryptjs.hash(Math.random().toString(36).slice(-12), 10);
+      user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          password: randomPassword,
+          role: "EMPLOYEE",
+          approved: false, // Default to false for security
+        }
+      });
+      return res.status(403).json({ message: "Account created but pending admin approval" });
+    }
+
+    if (!user.approved) {
+      return res.status(403).json({ message: "Account pending approval" });
+    }
+
+    const jwtToken = jwt.sign(
+      { id: user.id, email: user.email, role: user.role, approved: user.approved, departmentId: user.departmentId },
+      process.env.JWT_SECRET!,
+      { expiresIn: "1d" }
+    );
+
+    res.cookie("token", jwtToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: "lax",
+      path: "/",
+    });
+
+    res.status(200).json({ user, token: jwtToken });
+  } catch (error: any) {
+    res.status(401).json({ message: error.message || "Google Login failed" });
   }
 };
 

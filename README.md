@@ -7,8 +7,8 @@ The Task Management System (TMS) is a comprehensive web application designed to 
 The system follows a modern decoupled architecture:
 - **Frontend**: A React-based web interface built with Next.js, featuring responsive design and interactive components.
 - **Backend**: A Node.js and Express REST API that handles business logic, database interactions, authentication, and queuing.
-- **Database**: MySQL database, managed and queried via Prisma ORM for type-safe data access.
-- **Caching & Queues**: Redis is utilized for both rate limiting and managing background job queues via BullMQ.
+- **Database**: PostgreSQL database, managed and queried via Prisma ORM for type-safe data access.
+- **Rate Limiting**: Implemented via in-memory rate-limiter-flexible to defend against abuse.
 
 ## 📁 Folder Architecture
 A clean, modular structure ensures scalability and maintainability:
@@ -45,17 +45,13 @@ graph TD
     end
     subgraph "Data Layer"
         DB[(MySQL Database)]
-        Redis[(Redis Cache/Queue)]
     end
 
     User <--> UI
     UI <--> API
     API --> Auth
     API --> Limit
-    Limit <--> Redis
     API <--> DB
-    API --> Redis
-    Redis <--> Worker
     Worker <--> DB
 ```
 
@@ -65,7 +61,7 @@ graph TD
 3.  **Authentication**: `authenticateJWT` middleware verifies the token signature and expiration.
 4.  **RBAC Authorization**: `allowRoles` middleware ensures the user has sufficient permissions for the requested resource.
 5.  **Service Logic**: The controller handles the business logic, interacting with the Database via Prisma.
-6.  **Queueing (Optional)**: If the task is long-running (e.g., report generation), it's added to a BullMQ Redis queue for background processing.
+6.  **Queueing (Optional)**: If the task is long-running (e.g., report generation), it's processed asynchronously in the background.
 7.  **Response**: The server returns a JSON response to the client.
 
 ## 🗄️ Database Schema
@@ -105,11 +101,10 @@ model Task {
 
 ### Backend
 - **Runtime**: Node.js, Express.js 5
-- **ORM**: Prisma 6 (MySQL)
+- **ORM**: Prisma 6 (PostgreSQL)
 - **Authentication**: JSON Web Tokens (JWT), bcryptjs
-- **Rate Limiting**: rate-limiter-flexible (Redis-backed)
-- **Background Jobs**: BullMQ (Redis-backed)
-- **Caching**: ioredis
+- **Rate Limiting**: rate-limiter-flexible (In-memory)
+- **Background Jobs**: In-memory async worker
 
 ## 🔌 API Endpoints
 The backend exposes modular RESTful APIs organized by feature:
@@ -146,13 +141,10 @@ To defend against brute-force attacks and ensure fair usage, the system implemen
 | **Global Unauth Limiter** | 1,000 requests | 15 minutes | IP Address | All unauthenticated requests |
 | **Global Auth Limiter** | 1,500 requests | 15 minutes | User ID | All authenticated requests |
 
-## ⚙️ Background Jobs (BullMQ)
-Heavy, asynchronous tasks are delegated to background workers using **BullMQ** and **Redis**.
+## ⚙️ Background Jobs
+Heavy, asynchronous tasks are delegated to a simple in-memory worker using `setTimeout` to prevent blocking the main thread.
 
-- **Queue Setup**: Active queue named `background-jobs`.
-- **Worker Concurrency**: Processes up to 5 jobs simultaneously.
 - **Job Types**: Currently implements simulated tasks like `send-email` and `generate-report`.
-- **Resilience**: Features exponential backoff on retries (3 attempts with 2s, 4s, 8s delays) and automatic clean-up of successful jobs while retaining failed ones for debugging.
 
 ## 📈 Load Testing Results
 Tests conducted using `k6` on 2026-02-27.
@@ -173,20 +165,21 @@ Stress and Spike tests were performed on a **single-node development environment
 
 ### Prerequisites
 - Node.js (v20+)
-- MySQL
-- Redis Server (Running locally or via Docker)
+- PostgreSQL Database
+- Redis Server (Running locally or as a service)
 
 ### 1. Database & Config Setup
 1. Clone the repository and navigate to the project root.
-2. In the `/backend` directory, create a `.env` file based on `.env.example` defining your `DATABASE_URL` (MySQL), `REDIS_URL`, and `JWT_SECRET`.
+2. In the `/backend` directory, create a `.env` file based on `.env.example` defining your `DATABASE_URL` (PostgreSQL) and `JWT_SECRET`.
 3. In the `/frontend` directory, configure your `.env` variables (e.g., `NEXT_PUBLIC_API_URL`).
 
-### 2. Backend Initialization
+### 2. Backend Initialization & Database Seeding
 ```bash
 cd backend
 npm install
 npx prisma generate
-npx prisma db push     # Or 'npx prisma migrate dev' if using migrations
+npx prisma db push     # Sets up postgres schema
+node scripts/clean_and_seed.js   # Wipes database and injects approved seed accounts!
 npm run dev            # Starts the Express server on port 5000
 ```
 
@@ -197,16 +190,21 @@ npm install
 npm run dev            # Starts the Next.js server on port 3000
 ```
 
-### 4. Production Deployment
-The application is containerized for consistent deployment:
+### 🔑 Active Database User Credentials
+The database has been seeded with three default approved accounts:
 
-1.  **Build Image**: `docker build -t tms-backend ./backend`
-2.  **Environment**: Ensure `.env` files are populated with production credentials.
-3.  **Compose**: Use the provided `compose.yaml` for orchestrated startup:
-    ```bash
-    docker compose up -d
-    ```
-4.  **Scaling**: The backend can be scaled horizontally; however, sticky sessions or token-based auth (current) is required. Redis and MySQL should be managed as highly available services in production (e.g., AWS RDS, ElastiCache).
+1. **System Admin**
+   * **Email**: `admin@tasksync.com`
+   * **Password**: `adminpassword123`
+   * **Role**: `ADMIN`
+2. **Operations Manager**
+   * **Email**: `manager@tasksync.com`
+   * **Password**: `managerpassword123`
+   * **Role**: `MANAGER`
+3. **Productive Employee**
+   * **Email**: `employee@tasksync.com`
+   * **Password**: `employeepassword123`
+   * **Role**: `EMPLOYEE`
 
 ## 🌍 Production Environment
 For optimal performance and reliability, the following production stack is recommended:
@@ -214,5 +212,5 @@ For optimal performance and reliability, the following production stack is recom
 - **Frontend**: Next.js (Deployed on Vercel or AWS Amplify)
 - **Backend**: Node.js managed by **PM2** for process management and auto-restart.
 - **Reverse Proxy**: **Nginx** for SSL termination, load balancing, and static asset caching.
-- **Database**: Managed **MySQL** instance.
+- **Database**: Managed **PostgreSQL** instance.
 - **Queue System**: Managed **Redis** instance for BullMQ and Rate Limiting.

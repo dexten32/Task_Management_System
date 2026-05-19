@@ -9,7 +9,7 @@ interface CardProps {
 export const Card = ({ children, className }: CardProps) => {
   return (
     <div
-      className={` shadow-lg rounded-lg ${className} border border-gray-300`}
+      className={` shadow-lg rounded-lg ${className} border border-border`}
     >
       {children}
     </div>
@@ -21,11 +21,11 @@ export const CardContent = ({ children }: CardProps) => {
 };
 
 export const CardHeader = ({ children }: CardProps) => {
-  return <div className="p-6 border-b border-gray-300">{children}</div>;
+  return <div className="p-6 border-b border-border">{children}</div>;
 };
 
 export const CardTitle = ({ children }: CardProps) => {
   return (
-    <h2 className="text-xl md:text-4xl font-bold text-gray-600">{children}</h2>
+    <h2 className="text-xl md:text-4xl font-bold text-muted-foreground">{children}</h2>
   );
 };

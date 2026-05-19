@@ -12,6 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Search, Filter, Folder, Clock } from "lucide-react";
 
 interface Task {
   priority: { code: string; name: string; color: string };
@@ -130,6 +136,8 @@ export default function ManagerTasksPage() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedPriority, setSelectedPriority] = useState<string>("All");
   const [selectedStatus, setSelectedStatus] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     async function fetchUsers() {
@@ -251,217 +259,177 @@ export default function ManagerTasksPage() {
     const statusMatch =
       selectedStatus === "All" || task.status === selectedStatus;
 
-    return userMatch && priorityMatch && statusMatch;
+    const searchMatch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || task.readableId?.toString().includes(searchQuery) || task.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return userMatch && priorityMatch && statusMatch && searchMatch;
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 text-gray-800 p-8 font-sans rounded-xl relative">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8 tracking-tight">
+    <div className="min-h-screen text-card-foreground p-8 font-sans rounded-xl relative">
+      <h1 className="text-3xl font-bold text-foreground mb-8 tracking-tight">
         Tasks Assigned by You
       </h1>
 
       {error && (
-        <div className="bg-red-100 border border-red-300 text-red-800 p-4 rounded-lg mb-6 shadow-sm">
+        <div className="bg-destructive/10 border border-destructive/30 text-destructive p-4 rounded-lg mb-6 shadow-sm">
           <p>{error}</p>
         </div>
       )}
 
       {/* Filters */}
-      <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="flex flex-col">
-          <label
-            htmlFor="user"
-            className="block text-sm font-medium text-gray-600 mb-1"
-          >
-            Filter by User
-          </label>
-          {loadingUsers ? (
-            <p className="text-sm text-gray-500">Loading...</p>
-          ) : (
-            <SelectField value={selectedUser} onValueChange={setSelectedUser}>
-              <SelectTrigger className="w-full bg-white border-gray-300">
-                <SelectValue placeholder="All" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All</SelectItem>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.name}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </SelectField>
-          )}
+      <div className="flex flex-col md:flex-row gap-4 mb-6 items-start md:items-center justify-between">
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search tasks..." 
+            className="pl-9 bg-card border-border shadow-sm text-foreground"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-        <div className="flex flex-col">
-          <label className="block text-sm font-medium text-gray-600 mb-1">
-            Filter by Status
-          </label>
-          <SelectField value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="w-full bg-white border-gray-300">
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All</SelectItem>
-              <SelectItem value="ACTIVE">Active</SelectItem>
-              <SelectItem value="COMPLETED">Completed</SelectItem>
-              <SelectItem value="DELAYED">Delayed</SelectItem>
-            </SelectContent>
-          </SelectField>
-        </div>
-
-        <div className="flex flex-col">
-          <label className="block text-sm font-medium text-gray-600 mb-1">
-            Filter by Priority
-          </label>
-
-          <SelectField
-            value={selectedPriority}
-            onValueChange={setSelectedPriority}
-          >
-            <SelectTrigger className="w-full bg-white border-gray-300">
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All</SelectItem>
-              {priorities.map((priority) => (
-                <SelectItem key={priority.id} value={priority.name}>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{
-                        backgroundColor:
-                          priority.name === "High"
-                            ? "#ef4444" // red
-                            : priority.name === "Medium"
-                              ? "#f59e0b" // amber
-                              : priority.name === "Low"
-                                ? "#10b981" // emerald
-                                : "#6b7280",
-                      }}
-                    />
-                    {priority.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </SelectField>
-        </div>
+        <Button variant="outline" className="bg-card shrink-0 text-foreground" onClick={() => setShowFilters(!showFilters)}>
+          <Filter className="w-4 h-4 mr-2" /> Filters
+        </Button>
       </div>
 
+      {showFilters && (
+        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-card/60 backdrop-blur-md p-4 rounded-xl border border-border shadow-md">
+          <div className="flex flex-col">
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Assigned To</label>
+            <SelectField value={selectedUser} onValueChange={setSelectedUser}>
+              <SelectTrigger className="w-full bg-card border-border"><SelectValue placeholder="All" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                {users.map((u) => (<SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>))}
+              </SelectContent>
+            </SelectField>
+          </div>
+          <div className="flex flex-col">
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Status</label>
+            <SelectField value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-full bg-card border-border"><SelectValue placeholder="All" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="DELAYED">Delayed</SelectItem>
+              </SelectContent>
+            </SelectField>
+          </div>
+          <div className="flex flex-col">
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Priority</label>
+            <SelectField value={selectedPriority} onValueChange={setSelectedPriority}>
+              <SelectTrigger className="w-full bg-card border-border"><SelectValue placeholder="All" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                {priorities.map((p) => (<SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>))}
+              </SelectContent>
+            </SelectField>
+          </div>
+        </div>
+      )}
+
       {/* Tasks Section */}
-      <div className="space-y-10">
+      <div className="space-y-8">
         {loadingTasks ? (
-          <p className="text-gray-600 text-lg">Loading tasks...</p>
+          <p className="text-muted-foreground text-lg">Loading tasks...</p>
         ) : filteredTasks.length > 0 ? (
-          Object.entries(
-            [...filteredTasks]
-              .sort(
-                (a, b) =>
-                  new Date(b.createdAt).getTime() -
-                  new Date(a.createdAt).getTime(),
-              )
-              .reduce((groups: Record<string, typeof filteredTasks>, task) => {
-                const date = new Date(task.createdAt).toLocaleDateString(
-                  undefined,
-                  {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  },
-                );
-                if (!groups[date]) groups[date] = [];
-                groups[date].push(task);
-                return groups;
-              }, {}),
-          ).map(([date, tasks]) => (
-            <div key={date}>
-              <h2 className="text-xl font-semibold text-gray-700 mb-4 border-b border-gray-300 pb-1">
-                {date}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {tasks.map((task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => setSelectedTaskId(task.id)}
-                    className="block group cursor-pointer"
-                  >
-                    <div className="relative bg-white/90 pt-2 p-6 rounded-2xl border border-gray-200 shadow-sm hover:-translate-y-1 hover:shadow-lg hover:border-indigo-300 transition-all duration-300">
-                      {/* Priority Indicator */}
-                      {task.priority && (
-                        <div className="absolute top-4 right-4 z-50 bg-white/80 backdrop-blur-sm  flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{
-                              backgroundColor: task.priority?.color,
-                            }}
-                          />
-                          <span className="text-[10px] uppercase font-bold text-gray-600">
-                            {task.priority?.name}
+          <div className="rounded-xl shadow-lg bg-card/60 backdrop-blur-md border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/50 hover:bg-transparent">
+                  <TableHead className="text-muted-foreground font-medium text-xs w-[80px]">ID</TableHead>
+                  <TableHead className="text-muted-foreground font-medium text-xs min-w-[200px]">Task Name</TableHead>
+                  <TableHead className="text-muted-foreground font-medium text-xs">Assignees</TableHead>
+                  <TableHead className="text-muted-foreground font-medium text-xs">Department</TableHead>
+                  <TableHead className="text-muted-foreground font-medium text-xs">Deadline</TableHead>
+                  <TableHead className="text-muted-foreground font-medium text-xs text-right">Status</TableHead>
+                  <TableHead className="text-muted-foreground font-medium text-xs text-right">Priority</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(
+                  [...filteredTasks]
+                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .reduce((groups: Record<string, typeof filteredTasks>, task) => {
+                      const date = new Date(task.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                      if (!groups[date]) groups[date] = [];
+                      groups[date].push(task);
+                      return groups;
+                    }, {})
+                ).map(([date, tasks]) => (
+                  <React.Fragment key={date}>
+                    <TableRow className="bg-muted/10 hover:bg-muted/10 border-border/50">
+                      <TableCell colSpan={7} className="font-semibold text-zinc-400 py-3 text-xs uppercase tracking-wider">
+                        {date}
+                      </TableCell>
+                    </TableRow>
+                    {tasks.map((task) => (
+                      <TableRow 
+                        key={task.id} 
+                        onClick={() => setSelectedTaskId(task.id)}
+                        className="cursor-pointer border-b border-border/50 hover:bg-muted/30 group"
+                      >
+                        <TableCell>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/50 px-2 py-1 rounded">
+                            TSK-0{task.readableId}
                           </span>
-                        </div>
-                      )}
-
-                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded mb-1 inline-block">
-                        CYN-0{task.readableId}
-                      </span>
-
-                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                        {task.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {task.description}
-                      </p>
-                      <div className="space-y-1 text-sm text-gray-500">
-                        <p>
-                          <span className="font-semibold text-gray-700">
-                            Deadline:
-                          </span>{" "}
-                          {new Date(task.deadline).toLocaleString([], {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                        <p>
-                          <span className="font-semibold text-gray-700">
-                            Assigned To:
-                          </span>{" "}
-                          {task.assignees && task.assignees.length > 0
-                            ? task.assignees.map((a) => a.name).join(", ")
-                            : task.assignedTo?.name || "N/A"}
-                        </p>
-                        <p>
-                          <span className="font-semibold text-gray-700">
-                            Department:
-                          </span>{" "}
-                          {task.department || "N/A"}
-                        </p>
-                        <p
-                          className={`font-semibold ${TASK_STATUS_CONFIG[task.status as TaskStatus]?.colorClass || ""}`}
-                        >
-                          <span className="font-semibold text-gray-700">
-                            Status:
-                          </span>{" "}
-                          {task.status}
-                        </p>
-                        <p>
-                          <span className="font-semibold text-gray-700">
-                            Assigned By:
-                          </span>{" "}
-                          {task.assignedBy?.name || "N/A"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
+                            {task.title}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center -space-x-2">
+                            {(task.assignees?.length ? task.assignees : (task.assignedTo ? [task.assignedTo] : [])).slice(0, 3).map((a, i) => (
+                              <Avatar key={i} className="h-7 w-7 border-2 border-background">
+                                <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                                  {a?.name?.substring(0, 2).toUpperCase() || 'NA'}
+                                </AvatarFallback>
+                              </Avatar>
+                            ))}
+                            {(task.assignees?.length ? task.assignees.length > 3 : false) && (
+                              <div className="h-7 w-7 rounded-full bg-muted border-2 border-background flex items-center justify-center z-10">
+                                <span className="text-[10px] font-bold text-muted-foreground">+{task.assignees!.length - 3}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <Folder className="w-4 h-4" />
+                            <span>{task.department || "N/A"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            <span>{new Date(task.deadline).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge className="bg-primary/10 text-primary hover:bg-primary/15 border-none shadow-none font-medium">
+                            {task.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge 
+                            style={{ backgroundColor: task.priority?.color, color: "#ffffff" }}
+                            className="border-none shadow-none font-medium text-[10px]"
+                          >
+                            {task.priority?.name || "None"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </React.Fragment>
                 ))}
-              </div>
-            </div>
-          ))
+              </TableBody>
+            </Table>
+          </div>
         ) : (
-          <p className="text-gray-600 text-lg text-center py-10">
+          <p className="text-muted-foreground text-lg text-center py-10">
             No tasks found.
           </p>
         )}
@@ -475,12 +443,12 @@ export default function ManagerTasksPage() {
             onClick={() => setSelectedTaskId(null)}
           >
             <div
-              className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative"
+              className="bg-card rounded-2xl shadow-2xl border border-border w-[95%] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={() => setSelectedTaskId(null)}
-                className="absolute top-4 right-4 z-50 bg-white/80 backdrop-blur-sm  text-gray-500 hover:text-red-600 text-lg font-semibold"
+                className="absolute top-4 right-4 z-50 bg-card/ backdrop-blur-sm  text-muted-foreground hover:text-destructive text-lg font-semibold"
               >
                 ✕
               </button>

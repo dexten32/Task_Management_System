@@ -16,8 +16,17 @@ import { Input } from "@/components/ui/input";
 import MultiSelect from "@/components/MultiSelect";
 import ClientTaskDetail from "@/components/ClientTaskDetail";
 import API_BASE_URL from "@/lib/api";
-
-import { X } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { X, ListTodo, Activity, AlertCircle } from "lucide-react";
 
 interface UserResponse {
   id: string;
@@ -81,7 +90,6 @@ const DashboardPage = () => {
   const [deadline, setDeadline] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectedDeptId, setSelectedDeptId] = useState("");
-  const [managerDeptName, setManagerDeptName] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -96,6 +104,7 @@ const DashboardPage = () => {
   const [backendDelayedTasks, setBackendDelayedTasks] = useState<Task[]>([]);
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   // const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
 
   // Loading & Error States
@@ -104,14 +113,15 @@ const DashboardPage = () => {
 
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [priorities, setPriorities] = useState<Priority[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [selectedPriorityId, setSelectedPriorityId] = useState<number | null>(
     null,
   );
   const [nextTaskId, setNextTaskId] = useState<number | null>(null);
 
   // Filters State
+  const [filterDept, setFilterDept] = useState<string>("All");
   const [filterUser, setFilterUser] = useState<string>("All");
+  const [filterAssignedBy, setFilterAssignedBy] = useState<string>("All");
   const [aggregates, setAggregates] = useState<DashboardAggregates>({
     total: 0,
     active: 0,
@@ -158,18 +168,6 @@ const DashboardPage = () => {
         if (!priorityResponse.ok) throw new Error("Failed to fetch priorities");
         const priorityData = await priorityResponse.json();
         setPriorities(priorityData.priorities || []);
-
-        const meResponse = await fetch(`${API_BASE_URL}/api/users/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!meResponse.ok) throw new Error("Failed to fetch current user");
-        const meData = await meResponse.json();
-
-        if (meData?.departmentId) {
-          setSelectedDeptId(meData.departmentId);
-          const dept = departmentsData.departments?.find((d: Department) => d.id === meData.departmentId);
-          if (dept) setManagerDeptName(dept.name);
-        }
       } catch (error: unknown) {
         console.error("Failed to fetch users/departments/priorities", error);
         setModalFetchError("Failed to load data.");
@@ -180,7 +178,7 @@ const DashboardPage = () => {
     fetchUsersAndDepartments();
   }, []);
 
-  const fetchTasks = async (filterUser: string) => {
+  const fetchTasks = async (filterUser: string, filterDept: string, filterAssignedBy: string) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication token not found.");
@@ -188,6 +186,12 @@ const DashboardPage = () => {
       query.set("limit", "3");
       if (filterUser !== "All") {
         query.set("userId", filterUser);
+      }
+      if (filterDept !== "All") {
+        query.set("departmentId", filterDept);
+      }
+      if (filterAssignedBy !== "All") {
+        query.set("assignedByUserId", filterAssignedBy);
       }
       const res = await fetch(
         `${API_BASE_URL}/api/tasks/recentlimit?${query.toString()}`,
@@ -205,6 +209,8 @@ const DashboardPage = () => {
 
   const fetchBackendDelayedTasks = async (
     filterUser: string,
+    filterDept: string,
+    filterAssignedBy: string,
   ) => {
     try {
       const token = localStorage.getItem("token");
@@ -213,6 +219,12 @@ const DashboardPage = () => {
       query.set("limit", "3");
       if (filterUser !== "All") {
         query.set("userId", filterUser);
+      }
+      if (filterDept !== "All") {
+        query.set("departmentId", filterDept);
+      }
+      if (filterAssignedBy !== "All") {
+        query.set("assignedByUserId", filterAssignedBy);
       }
       const res = await fetch(
         `${API_BASE_URL}/api/tasks/delayed?${query.toString()}`,
@@ -232,6 +244,8 @@ const DashboardPage = () => {
 
   const fetchDashboardAggregates = async (
     filterUser: string,
+    filterDept: string,
+    filterAssignedBy: string,
   ) => {
     const token = localStorage.getItem("token");
     if (!token) throw new Error("No Token");
@@ -241,6 +255,13 @@ const DashboardPage = () => {
     if (filterUser !== "All") {
       query.set("userId", filterUser);
     }
+    if (filterDept !== "All") {
+      query.set("departmentId", filterDept);
+    }
+    if (filterAssignedBy !== "All") {
+      query.set("assignedByUserId", filterAssignedBy);
+    }
+
     try {
       const res = await fetch(
         `${API_BASE_URL}/api/tasks/dashboard-aggregate?${query.toString()}`,
@@ -257,10 +278,10 @@ const DashboardPage = () => {
   };
 
   useEffect(() => {
-    fetchTasks(filterUser);
-    fetchBackendDelayedTasks(filterUser);
-    fetchDashboardAggregates(filterUser).then(setAggregates);
-  }, [filterUser]);
+    fetchTasks(filterUser, filterDept, filterAssignedBy);
+    fetchBackendDelayedTasks(filterUser, filterDept, filterAssignedBy);
+    fetchDashboardAggregates(filterUser, filterDept, filterAssignedBy).then(setAggregates);
+  }, [filterUser, filterDept, filterAssignedBy]);
 
   useEffect(() => {
     setSelectedUserIds([]);
@@ -315,11 +336,13 @@ const DashboardPage = () => {
         }
       }
 
+      const matchesDept = filterDept === "All" || taskDeptId === filterDept;
+
       const matchesUser =
         filterUser === "All" ||
         task.assignees?.some((a) => a.id === filterUser);
 
-      return matchesUser;
+      return matchesDept && matchesUser;
     });
   };
 
@@ -386,7 +409,7 @@ const DashboardPage = () => {
         setSelectedDeptId("");
         setSelectedPriorityId(null);
         setTimeout(() => setIsModalOpen(false), 1500);
-        fetchTasks(filterUser);
+        fetchTasks(filterUser, filterDept, filterAssignedBy);
       } else {
         const data = await response.json();
         setError(data.message || "Failed to create task");
@@ -440,86 +463,231 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="min-h-screen text-gray-900 p-4 md:p-6 lg:p-8 font-sans select-none">
+    <div className="min-h-screen text-foreground font-sans select-none w-full">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-          Dashboard
-        </h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Manage your team's tasks and performance metrics.</p>
+        </div>
         <div className="flex gap-3 w-full sm:w-auto">
           <Button
-            size="sm"
             onClick={() => setIsModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md rounded-lg px-4 py-2 text-sm w-full sm:w-auto font-medium transition-all"
+            className="shrink-0 bg-primary text-primary-foreground shadow-sm transition-colors"
           >
             + Create New Task
           </Button>
         </div>
       </div>
 
-      {/* MAIN GRID LAYOUT */}
-      <div className="flex flex-col xl:flex-row gap-6">
-        {/* RIGHT COLUMN: ANALYTICS & SIDEBAR */}
-        <div className="w-full xl:w-72 flex flex-col gap-6 shrink-0 order-2 xl:order-2">
-          <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-4">
-            <Card className="bg-white/80 backdrop-blur-sm border-indigo-100 shadow-sm">
-              <CardContent className="p-4 flex flex-col items-center justify-center">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                  Total Tasks Assigned
-                </p>
-                <p className="text-3xl font-bold text-gray-800 mt-1">
-                  {totalTasks}
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="bg-indigo-50 border-indigo-100 shadow-sm">
-              <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] text-indigo-600 font-bold uppercase">
-                  Active Tasks
-                </p>
-                <p className="text-xl font-bold text-indigo-800">
-                  {activeTasks}
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="bg-amber-50 border-amber-100 shadow-sm">
-              <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] text-amber-600 font-bold uppercase">
-                  Delayed Tasks
-                </p>
-                <p className="text-xl font-bold text-amber-800">
-                  {delayedTasks}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <Card className="shadow-sm dark:shadow-2xl dark:shadow-black/40 bg-card backdrop-blur-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Tasks Assigned</CardTitle>
+            <ListTodo className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">{totalTasks}</div>
+            <p className="text-xs text-muted-foreground mt-1">All-time record across departments</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm dark:shadow-2xl dark:shadow-black/40 bg-card backdrop-blur-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Tasks</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">{activeTasks}</div>
+            <p className="text-xs text-muted-foreground mt-1">Currently in progress</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm dark:shadow-2xl dark:shadow-black/40 bg-card backdrop-blur-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Delayed Tasks</CardTitle>
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">{delayedTasks}</div>
+            <p className="text-xs text-muted-foreground mt-1">Require immediate attention</p>
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Donut Chart */}
-          <Card className="bg-white border-gray-200 shadow-sm overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-gray-700">
-                Tasks Analytics
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* Main Content Area */}
+        <div className="xl:col-span-3 space-y-6">
+          <Card className="shadow-sm dark:shadow-2xl dark:shadow-black/40 bg-card backdrop-blur-md">
+            <CardHeader className="p-4 md:p-6 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <CardTitle className="text-lg">Recent Tasks</CardTitle>
+              <div className="flex flex-wrap gap-2">
+                <div className="w-32">
+                  <SelectField value={filterDept} onValueChange={setFilterDept}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All Depts</SelectItem>
+                      {departments.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </SelectField>
+                </div>
+                <div className="w-32">
+                  <SelectField value={filterUser} onValueChange={setFilterUser}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Assignee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All Users</SelectItem>
+                      {(filterDept === "All" ? allUsers : allUsers.filter((u) => u.departmentId === filterDept))
+                        .filter((u) => u.role !== "MANAGER")
+                        .map((u) => (
+                          <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </SelectField>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[300px] text-xs font-medium text-muted-foreground">Task</TableHead>
+                    <TableHead className="text-xs font-medium text-muted-foreground">Assignee</TableHead>
+                    <TableHead className="text-xs font-medium text-muted-foreground">Deadline</TableHead>
+                    <TableHead className="text-right text-xs font-medium text-muted-foreground">Priority</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRecentTasks.length > 0 ? (
+                    filteredRecentTasks.map((task) => (
+                      <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedTaskId(task.id)}>
+                        <TableCell>
+                          <div className="font-medium text-foreground">TSK-0{task.readableId} • {task.title}</div>
+                          <div className="text-xs text-muted-foreground line-clamp-1 mt-1">{task.description}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarFallback className="text-[10px] bg-secondary text-secondary-foreground">
+                                {task.assignees?.[0]?.name?.substring(0, 2).toUpperCase() || "?"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm text-muted-foreground">
+                              {task.assignees?.[0]?.name || "Unassigned"}
+                              {task.assignees && task.assignees.length > 1 && ` +${task.assignees.length - 1}`}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {task.deadline ? format(new Date(task.deadline), "MMM d, yyyy") : "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {task.priority && (
+                            <Badge 
+                              style={{ backgroundColor: task.priority.color, color: "#ffffff" }}
+                              className="border-none shadow-none font-medium text-[10px]"
+                            >
+                              {task.priority.name}
+                            </Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                        No tasks found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm dark:shadow-2xl dark:shadow-black/40 border-destructive/20 bg-card backdrop-blur-md">
+            <CardHeader className="p-4 md:p-6 border-b border-destructive/10 bg-destructive/5 flex flex-row items-center justify-between">
+              <CardTitle className="text-lg text-destructive flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                Delayed Tasks
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col pb-6">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[300px] text-xs font-medium text-muted-foreground">Task</TableHead>
+                    <TableHead className="text-xs font-medium text-muted-foreground">Assignee</TableHead>
+                    <TableHead className="text-xs font-medium text-muted-foreground">Overdue Since</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredDelayedTasks.length > 0 ? (
+                    filteredDelayedTasks.map((task) => (
+                      <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedTaskId(task.id)}>
+                        <TableCell>
+                          <div className="font-medium text-foreground">TSK-0{task.readableId} • {task.title}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarFallback className="text-[10px] bg-secondary text-secondary-foreground">
+                                {task.assignees?.[0]?.name?.substring(0, 2).toUpperCase() || "?"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm text-muted-foreground">
+                              {task.assignees?.[0]?.name || "Unassigned"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {task.deadline ? (
+                            <span className="bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-xs inline-block">
+                              {format(new Date(task.deadline), "MMM d, yyyy")}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                        No delayed tasks. Great job!
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Analytics Column */}
+        <div className="space-y-6">
+          <Card className="shadow-sm dark:shadow-2xl dark:shadow-black/40 bg-card backdrop-blur-md">
+            <CardHeader className="border-b pb-4">
+              <CardTitle className="text-lg">Tasks Analytics</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
               <div className="flex justify-center items-center">
                 {totalChartValue === 0 ? (
-                  <div className="h-40 w-40 rounded-full border-4 border-gray-100 flex items-center justify-center text-xs text-gray-400">
+                  <div className="h-40 w-40 rounded-full border-4 border-muted flex items-center justify-center text-xs text-muted-foreground">
                     No Data
                   </div>
                 ) : (
                   <div className="relative w-48 h-48">
-                    <svg
-                      viewBox="0 0 120 120"
-                      className="w-full h-full transform -rotate-90"
-                    >
+                    <svg viewBox="0 0 120 120" className="w-full h-full transform -rotate-90">
                       {chartData.map((slice, i) => {
                         const percent = slice.value / totalChartValue;
                         const radius = 50;
                         const circumference = 2 * Math.PI * radius;
-                        const strokeDasharray = `${percent * circumference
-                          } ${circumference}`;
-                        const strokeDashoffset =
-                          -cumulativePercent * circumference;
+                        const strokeDasharray = `${percent * circumference} ${circumference}`;
+                        const strokeDashoffset = -cumulativePercent * circumference;
                         cumulativePercent += percent;
 
                         return (
@@ -533,440 +701,208 @@ const DashboardPage = () => {
                             strokeWidth="12"
                             strokeDasharray={strokeDasharray}
                             strokeDashoffset={strokeDashoffset}
-                            strokeLinecap="butt"
+                            strokeLinecap="round"
                             className="transition-all duration-1000 ease-out"
                           />
                         );
                       })}
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center flex-col">
-                      <span className="text-3xl font-bold text-gray-800">
-                        {totalChartValue}
-                      </span>
-                      <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                        Total
-                      </span>
+                      <span className="text-3xl font-bold">{totalChartValue}</span>
+                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Total</span>
                     </div>
                   </div>
                 )}
               </div>
-
-              {/* Legend */}
-              <div className="mt-6 flex flex-wrap justify-center gap-x-4 gap-y-2">
+              <div className="mt-8 flex flex-col gap-3">
                 {chartData.map((item, index) => (
-                  <div key={index} className="flex items-center gap-1.5">
-                    <span
-                      className="h-2 w-2 rounded-full ring-2 ring-white shadow-sm"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-xs text-gray-600 font-medium">
-                      {item.label}
-                    </span>
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-sm font-medium text-muted-foreground">{item.label}</span>
+                    </div>
+                    <span className="text-sm font-bold">{item.value}</span>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* LEFT COLUMN: FILTERS & CONTENT */}
-        <div className="flex-1 order-1 xl:order-1 flex flex-col gap-6">
-          {/* Filter Bar */}
-          <div className="bg-white/80 p-4 rounded-xl border border-gray-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <SelectField value={filterUser} onValueChange={setFilterUser}>
-              <SelectTrigger>
-                <SelectValue placeholder="Assigned To" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Assignees</SelectItem>
-                {allUsers
-                  .filter((u) => u.role !== "MANAGER")
-                  .map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </SelectField>
-          </div>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* Recent Tasks */}
-            <Card className="rounded-xl shadow-lg bg-white/90 backdrop-blur-sm border border-gray-200">
-              <CardHeader className="p-4 md:p-6 border-b border-gray-200">
-                <CardTitle className="text-lg md:text-xl font-semibold text-gray-800">
-                  Recent Tasks
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 md:p-6">
-                <ul className="space-y-4">
-                  {filteredRecentTasks.length > 0 ? (
-                    filteredRecentTasks.map((task) => (
-                      <li
-                        key={task.id}
-                        onClick={() => setSelectedTaskId(task.id)}
-                        className="relative p-4 border border-gray-200 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-indigo-200 transition duration-200 cursor-pointer"
-                      >
-                        {task.priority && (
-                          <div className="absolute top-4 right-4 z-50 bg-white/80 backdrop-blur-sm  flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: task.priority.color }}
-                            />
-                            <span className="text-[10px] uppercase font-bold text-gray-600">
-                              {task.priority.name}
-                            </span>
-                          </div>
-                        )}
-                        <div>
-                          <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded mb-1 inline-block">
-                            CYN-0{task.readableId}
-                          </span>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Title:</strong>{" "}
-                            <span className="font-medium text-gray-800">
-                              {task.title}
-                            </span>
-                          </p>
-                          <p className="text-sm text-gray-600 mb-1 line-clamp-1">
-                            <strong>Desc:</strong> {task.description}
-                          </p>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Assigned To:</strong>{" "}
-                            <span className="font-medium text-gray-800">
-                              {task.assignees && task.assignees.length > 0
-                                ? task.assignees.map((a) => a.name).join(", ")
-                                : "N/A"}
-                            </span>
-                          </p>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Assigned By:</strong>{" "}
-                            <span className="font-medium text-gray-800">
-                              {task.assignedBy?.name || "N/A"}
-                            </span>
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <strong>Deadline:</strong>{" "}
-                            {task.deadline
-                              ? format(new Date(task.deadline), "PPPpp")
-                              : "N/A"}
-                          </p>
-                        </div>
-                      </li>
-                    ))
-                  ) : (
-                    <li className="p-4 text-gray-500 text-center text-sm">
-                      No recent tasks.
-                    </li>
-                  )}
-                </ul>
-              </CardContent>
-            </Card>
-
-            {/* Delayed Tasks */}
-            <Card className="rounded-xl shadow-lg bg-white/90 backdrop-blur-sm border border-gray-200">
-              <CardHeader className="p-4 md:p-6 border-b border-gray-200">
-                <CardTitle className="text-lg md:text-xl font-semibold text-gray-800">
-                  Delayed Tasks
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 md:p-6">
-                <div className="space-y-4">
-                  {filteredDelayedTasks.length > 0 ? (
-                    filteredDelayedTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        onClick={() => setSelectedTaskId(task.id)}
-                        className="relative flex flex-col p-4 border border-red-200 rounded-lg bg-red-50 shadow-sm hover:border-red-300 hover:shadow-md transition duration-200 cursor-pointer"
-                      >
-                        {task.priority && (
-                          <div className="absolute top-4 right-4 z-50 bg-white/80 backdrop-blur-sm  flex items-center gap-1.5 shrink-0 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: task.priority.color }}
-                            />
-                            <span className="text-[10px] uppercase font-bold text-gray-600">
-                              {task.priority.name}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded mb-1 inline-block">
-                            CYN-0{task.readableId}
-                          </span>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Title:</strong>{" "}
-                            <span className="font-medium text-gray-800">
-                              {task.title}
-                            </span>
-                          </p>
-                          <p className="text-sm text-gray-600 mb-1 line-clamp-1">
-                            <strong>Desc:</strong> {task.description}
-                          </p>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Assigned To:</strong>{" "}
-                            <span className="font-medium text-gray-800">
-                              {task.assignees && task.assignees.length > 0
-                                ? task.assignees.map((a) => a.name).join(", ")
-                                : "N/A"}
-                            </span>
-                          </p>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Assigned By:</strong>{" "}
-                            <span className="font-medium text-gray-800">
-                              {task.assignedBy?.name || "N/A"}
-                            </span>
-                          </p>
-                          <p className="text-sm text-red-600">
-                            <strong>Overdue since:</strong>{" "}
-                            {task.deadline
-                              ? format(new Date(task.deadline), "PPPpp")
-                              : "N/A"}
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-500 text-center text-sm">
-                      No delayed tasks.
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Task Lists */}
       </div>
 
       {/* Create Task Modal */}
-      {
-        isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white backdrop-blur-md text-gray-800 rounded-xl p-6 w-full max-w-md relative shadow-xl border border-gray-200">
-              <h2 className="text-2xl font-semibold mb-6 text-gray-900 text-center">
-                Create New Task {nextTaskId ? <span className="text-indigo-600">CYN-0{nextTaskId}</span> : ""}
-              </h2>
-              {isModalDataLoading ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-600">Loading data...</p>
-                </div>
-              ) : modalFetchError ? (
-                <div className="text-center py-8">
-                  <p className="text-red-600">{modalFetchError}</p>
-                  <Button onClick={() => setIsModalOpen(false)}>Close</Button>
-                </div>
-              ) : (
-                <form onSubmit={handleCreateTask} className="space-y-5">
-                  <div>
-                    <label className="block mb-2 font-medium text-gray-700">
-                      Title
-                    </label>
-                    <Input
-                      className="bg-white"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-2 font-medium text-gray-700">
-                      Description
-                    </label>
-                    <Textarea
-                      className="bg-white"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="gap-2">
-                    <label className="block mb-2 font-medium text-gray-700">
-                      Priority
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {priorities.map((p) => (
-                        <label
-                          key={p.id}
-                          className={`flex text-xs items-center gap-2 px-2 py-2 rounded-lg border cursor-pointer ${selectedPriorityId === p.id ? "border-indigo-500 bg-indigo-50" : "border-gray-300 bg-white"}`}
-                        >
-                          <input
-                            type="radio"
-                            name="priority"
-                            value={p.id}
-                            checked={selectedPriorityId === p.id}
-                            onChange={() => setSelectedPriorityId(p.id)}
-                            className="accent-indigo-600"
-                          />
-                          <span
-                            className="h-3 w-3 rounded-full"
-                            style={{ backgroundColor: p.color }}
-                          />
-                          <span className="text-xs text-gray-700">{p.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="w-full">
-                    <label className="block mb-2 font-medium text-gray-700">
-                      Deadline
-                    </label>
-                    <Input
-                      type="datetime-local"
-                      className="bg-white"
-                      value={deadline}
-                      onChange={(e) => setDeadline(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-2 font-medium text-gray-700">
-                      Department
-                    </label>
-                    <Input
-                      value={managerDeptName}
-                      disabled
-                      className="bg-gray-100 border-gray-200 text-gray-600 font-medium cursor-not-allowed"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-2 font-medium text-gray-700">
-                      Assign To
-                    </label>
-                    <MultiSelect
-                      options={allUsers
-                        .filter(
-                          (u) =>
-                            u.departmentId === selectedDeptId && u.approved && u.role !== "MANAGER",
-                        )
-                        .map((user) => ({
-                          id: user.id,
-                          name: `${user.name} (${user.role || 'EMPLOYEE'})`
-                        }))}
-                      selectedIds={selectedUserIds}
-                      onChange={setSelectedUserIds}
-                      placeholder={selectedDeptId ? "Select Users..." : "Loading Department..."}
-                      className={!selectedDeptId ? "opacity-50 pointer-events-none" : ""}
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsModalOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                    >
-                      Create Task
-                    </Button>
-                  </div>
-                  {error && (
-                    <p className="text-red-600 text-sm flex items-center justify-center">
-                      {error}
-                    </p>
-                  )}
-                  {success && (
-                    <p className="flex items-center justify-center text-green-600 text-sm">
-                      {success}
-                    </p>
-                  )}
-                </form>
-              )}
-            </div>
-          </div>
-        )
-      }
-
-      {/* Add Department Modal */}
-      {
-        isAddDeptModalOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white text-gray-800 rounded-xl p-6 w-full max-w-sm relative shadow-xl border border-gray-200">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Add Department</h2>
-                <button
-                  onClick={() => setIsAddDeptModalOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card backdrop-blur-md text-card-foreground rounded-xl p-6 w-full max-w-md relative shadow-xl border border-border">
+            <h2 className="text-2xl font-semibold mb-6 text-foreground text-center">
+              Create New Task {nextTaskId ? <span className="text-primary">TSK-0{nextTaskId}</span> : ""}
+            </h2>
+            {isModalDataLoading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading data...</p>
               </div>
-
-              <form onSubmit={handleCreateDepartment} className="space-y-5">
+            ) : modalFetchError ? (
+              <div className="text-center py-8">
+                <p className="text-destructive">{modalFetchError}</p>
+                <Button onClick={() => setIsModalOpen(false)}>Close</Button>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateTask} className="space-y-5">
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Department Name
+                  <label className="block mb-2 font-medium text-foreground/80">
+                    Title
                   </label>
                   <Input
-                    className="bg-gray-50 border-gray-200"
-                    value={newDeptName}
-                    onChange={(e) => setNewDeptName(e.target.value)}
-                    placeholder="e.g. Engineering"
-                    autoFocus
+                    className="bg-card"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
                     required
                   />
                 </div>
+                <div>
+                  <label className="block mb-2 font-medium text-foreground/80">
+                    Description
+                  </label>
+                  <Textarea
+                    className="bg-card"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="gap-2">
+                  <label className="block mb-2 font-medium text-foreground/80">
+                    Priority
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {priorities.map((p) => (
+                      <label
+                        key={p.id}
+                        className={`flex text-xs items-center gap-2 px-2 py-2 rounded-lg border cursor-pointer ${selectedPriorityId === p.id ? "border-primary bg-primary/10" : "border-border bg-card"}`}
+                      >
+                        <input
+                          type="radio"
+                          name="priority"
+                          value={p.id}
+                          checked={selectedPriorityId === p.id}
+                          onChange={() => setSelectedPriorityId(p.id)}
+                          className="accent-indigo-600"
+                        />
+                        <span
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: p.color }}
+                        />
+                        <span className="text-xs text-foreground/80">{p.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="w-full">
+                  <label className="block mb-2 font-medium text-foreground/80">
+                    Deadline
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    className="bg-card"
+                    value={deadline}
+                    onChange={(e) => setDeadline(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-2 font-medium text-foreground/80">
+                    Department
+                  </label>
+                  <SelectField
+                    value={selectedDeptId}
+                    onValueChange={setSelectedDeptId}
+                  >
+                    <SelectTrigger className="bg-card">
+                      <SelectValue placeholder="Select Department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dep) => (
+                        <SelectItem key={dep.id} value={dep.id}>
+                          {dep.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </SelectField>
+                </div>
+                <div>
+                  <label className="block mb-2 font-medium text-foreground/80">
+                    Assign To
+                  </label>
+                  <MultiSelect
+                    options={allUsers
+                      .filter(
+                        (u) =>
+                          u.departmentId === selectedDeptId && u.approved,
+                      )
+                      .map((user) => ({
+                        id: user.id,
+                        name: `${user.name} (${user.role || 'EMPLOYEE'})`
+                      }))}
+                    selectedIds={selectedUserIds}
+                    onChange={setSelectedUserIds}
+                    placeholder={selectedDeptId ? "Select Users..." : "Select Department First"}
+                    className={!selectedDeptId ? "opacity-50 pointer-events-none" : ""}
+                  />
+                </div>
 
-                <div className="flex justify-end gap-3 pt-2">
+                <div className="flex justify-end gap-3 pt-4 border-t border-border">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setIsAddDeptModalOpen(false)}
-                    className="w-full sm:w-auto"
+                    onClick={() => setIsModalOpen(false)}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white w-full sm:w-auto"
+                    className="bg-primary hover:bg-primary/90 text-white"
                   >
-                    Create
+                    Create Task
                   </Button>
                 </div>
-
-                {deptError && (
-                  <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center justify-center mt-2">
-                    <span className="font-medium mr-1">Error:</span> {deptError}
-                  </div>
+                {error && (
+                  <p className="text-destructive text-sm flex items-center justify-center">
+                    {error}
+                  </p>
                 )}
-                {deptSuccess && (
-                  <div className="p-3 bg-green-50 text-green-700 text-sm rounded-lg flex items-center justify-center mt-2 font-medium">
-                    {deptSuccess}
-                  </div>
+                {success && (
+                  <p className="flex items-center justify-center text-emerald-500 text-sm">
+                    {success}
+                  </p>
                 )}
               </form>
-            </div>
+            )}
           </div>
-        )
-      }
+        </div>
+      )}
+
+      {/* Add Department Modal removed for managers */}
 
       {/* Task Detail Modal */}
-      {
-        selectedTaskId && (
+      {selectedTaskId && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-sm"
+          onClick={() => setSelectedTaskId(null)}
+        >
           <div
-            className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-sm"
-            onClick={() => setSelectedTaskId(null)}
+            className="bg-card rounded-2xl shadow-2xl border border-border w-[95%] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[95%] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200"
-              onClick={(e) => e.stopPropagation()}
+            <button
+              onClick={() => setSelectedTaskId(null)}
+              className="absolute top-4 right-4 z-50 bg-card/ backdrop-blur-sm  text-muted-foreground hover:text-destructive text-lg font-semibold w-8 h-8 flex items-center justify-center rounded-full hover:bg-accent transition"
             >
-              <button
-                onClick={() => setSelectedTaskId(null)}
-                className="absolute top-4 right-4 z-50 bg-white/80 backdrop-blur-sm  text-gray-500 hover:text-red-600 text-lg font-semibold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
-              >
-                ✕
-              </button>
-              <ClientTaskDetail taskId={selectedTaskId} />
-            </div>
+              ✕
+            </button>
+            <ClientTaskDetail taskId={selectedTaskId} />
           </div>
-        )
-      }
+        </div>
+      )}
     </div>
   );
 };

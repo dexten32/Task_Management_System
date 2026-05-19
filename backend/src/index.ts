@@ -1,22 +1,33 @@
+import { logger } from "./utils/logger";
+
+// Globally intercept and override standard console logs in production
+if (process.env.NODE_ENV === "production") {
+  console.log = (...args) => logger.info(args.join(" "));
+  console.info = (...args) => logger.info(args.join(" "));
+  console.warn = (...args) => logger.warn(args.join(" "));
+  console.error = (...args) => {
+    const err = args.find(a => a instanceof Error);
+    logger.error(args.filter(a => !(a instanceof Error)).join(" "), err);
+  };
+}
+
 import app from "./app";
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    logger.info(`Server running on http://localhost:${PORT}`);
 });
 
 import prisma from "./config/prisma";
 import { initWorker } from "./workers/taskWorker";
 
 // Start background workers
-const worker = initWorker();
+initWorker();
 
 const gracefulShutdown = async () => {
     console.log('Received kill signal, shutting down gracefully');
     server.close(async () => {
         console.log('Closed out remaining connections');
-        await worker.close();
-        console.log('Worker shut down');
         await prisma.$disconnect();
         process.exit(0);
     });

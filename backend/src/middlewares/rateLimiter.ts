@@ -1,26 +1,22 @@
 import { Request, Response, NextFunction } from "express";
-import { RateLimiterRedis } from "rate-limiter-flexible";
-import redis from "../config/redis";
+import { RateLimiterMemory } from "rate-limiter-flexible";
 
 // Unauthenticated Global Limiter: 1000 requests per 15 minutes (rolling window, per IP)
-const unauthGlobalRateLimiter = new RateLimiterRedis({
-    storeClient: redis,
+const unauthGlobalRateLimiter = new RateLimiterMemory({
     keyPrefix: "global_unauth_limit",
     points: 1000,
     duration: 15 * 60, // Per 15 minutes
 });
 
 // Authenticated Global Limiter: 1500 requests per 15 minutes (rolling window, per User ID)
-const authGlobalRateLimiter = new RateLimiterRedis({
-    storeClient: redis,
+const authGlobalRateLimiter = new RateLimiterMemory({
     keyPrefix: "global_auth_limit",
     points: 1500,
     duration: 15 * 60, // Per 15 minutes
 });
 
 // Auth Route Limiter: 10 requests per 15 minutes (rolling window, per IP)
-const authRateLimiter = new RateLimiterRedis({
-    storeClient: redis,
+const authRateLimiter = new RateLimiterMemory({
     keyPrefix: "auth_limit",
     points: 10,
     duration: 15 * 60,

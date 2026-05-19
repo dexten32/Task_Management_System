@@ -53,35 +53,35 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     return (
         <div className={`relative ${className}`} ref={containerRef}>
             <div
-                className="flex items-center justify-between w-full p-2 border border-gray-300 rounded-md bg-white cursor-pointer min-h-[40px]"
+                className="flex items-center justify-between w-full p-2 border border-border rounded-md bg-card cursor-pointer min-h-[40px]"
                 onClick={() => setIsOpen(!isOpen)}
             >
                 <div className="flex flex-wrap gap-1 text-sm">
                     {selectedLabels.length > 0 ? (
                         selectedLabels.join(", ")
                     ) : (
-                        <span className="text-gray-400">{placeholder}</span>
+                        <span className="text-muted-foreground/80">{placeholder}</span>
                     )}
                 </div>
-                <ChevronDown className="w-4 h-4 text-gray-500 opacity-50" />
+                <ChevronDown className="w-4 h-4 text-muted-foreground opacity-50" />
             </div>
 
             {isOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
                     {options.length > 0 ? (
                         options.map((option) => {
                             const isSelected = selectedIds.includes(option.id);
                             return (
                                 <div
                                     key={option.id}
-                                    className={`flex items-center px-3 py-2 cursor-pointer text-sm hover:bg-gray-100 ${isSelected ? "bg-indigo-50 text-indigo-900" : "text-gray-900"
+                                    className={`flex items-center px-3 py-2 cursor-pointer text-sm hover:bg-accent ${isSelected ? "bg-primary/10 text-indigo-900" : "text-foreground"
                                         }`}
                                     onClick={() => handleToggle(option.id)}
                                 >
                                     <div
                                         className={`flex items-center justify-center w-4 h-4 mr-2 border rounded ${isSelected
-                                                ? "bg-indigo-600 border-indigo-600"
-                                                : "border-gray-300"
+                                                ? "bg-primary border-indigo-600"
+                                                : "border-border"
                                             }`}
                                     >
                                         {isSelected && <Check className="w-3 h-3 text-white" />}
@@ -91,7 +91,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                             );
                         })
                     ) : (
-                        <div className="p-2 text-sm text-gray-500 text-center">No options</div>
+                        <div className="p-2 text-sm text-muted-foreground text-center">No options</div>
                     )}
                 </div>
             )}

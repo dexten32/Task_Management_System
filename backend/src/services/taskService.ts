@@ -88,7 +88,7 @@ export const createTaskInDB = async (data: {
         connect: data.assigneeIds.map((id) => ({ id })),
       },
     },
-    include: TASK_SELECT_FIELDS,
+    select: TASK_SELECT_FIELDS,
   });
 };
 
@@ -111,7 +111,7 @@ export const updateTaskAssigneesInDB = async (taskId: string, assigneeIds: strin
         set: assigneeIds.map((id) => ({ id })),
       },
     },
-    include: TASK_SELECT_FIELDS,
+    select: TASK_SELECT_FIELDS,
   });
 };
 

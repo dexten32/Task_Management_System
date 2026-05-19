@@ -11,6 +11,7 @@ import {
   getCurrentUser,
   logout,
   getUsersFiltered,
+  googleLogin,
 } from "../controllers/userController";
 import { authenticateJWT } from "../middlewares/authMiddleware";
 import { allowRoles } from "../middlewares/roleMiddleware";
@@ -22,6 +23,7 @@ const router = express.Router();
 // Public routes
 router.post("/signup", authLimiter, signup);
 router.post("/login", authLimiter, login as RequestHandler);
+router.post("/google-login", authLimiter, asyncHandler(googleLogin as unknown as RequestHandler));
 
 // Authenticated routes
 router.get(

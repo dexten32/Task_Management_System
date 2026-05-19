@@ -12,19 +12,13 @@ import {
   getNextReadableId,
 } from "../services/taskService";
 import { TaskStatus, Prisma } from "@prisma/client";
-import redis from "../config/redis";
 import { addJobToQueue } from "../queues/taskQueue";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const CACHE_TTL = 600;
-
 const invalidateTaskCaches = async (assigneeIds: string[]) => {
-  await redis.del("recent_tasks:ADMIN");
-  for (const id of assigneeIds) {
-    await redis.del(`my_tasks:${id}`);
-  }
+  // Caching removed
 };
 
 export const assignTask = async (req: Request, res: Response) => {
@@ -115,16 +109,8 @@ export const getRecentTasks = async (req: Request, res: Response) => {
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
     const skip = (page - 1) * limit;
 
-    const shouldCache = page === 1 && limit === 10;
-    if (shouldCache) {
-      const cached = await redis.get(cacheKey);
-      if (cached) return res.json(JSON.parse(cached));
-    }
-
     const tasks = await getTasksFromDB(where, skip, limit);
     const response = { tasks, page, limit };
-
-    if (shouldCache) await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(response));
 
     return res.json(response);
   } catch (error: any) {
@@ -142,11 +128,6 @@ export const getMyTasks = async (req: Request, res: Response) => {
     const skip = (page - 1) * limit;
     const cacheKey = `my_tasks:${userId}`;
 
-    if (page === 1 && limit === 10) {
-      const cached = await redis.get(cacheKey);
-      if (cached) return res.json(JSON.parse(cached));
-    }
-
     const where = {
       assignees: { some: { id: userId } },
       OR: [{ status: TaskStatus.ACTIVE }, { status: TaskStatus.DELAYED }, { status: TaskStatus.COMPLETED }],
@@ -154,8 +135,6 @@ export const getMyTasks = async (req: Request, res: Response) => {
 
     const tasks = await getTasksFromDB(where, skip, limit);
     const response = { tasks, page, limit };
-
-    if (page === 1 && limit === 10) await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(response));
 
     res.json(response);
   } catch (error: any) {
