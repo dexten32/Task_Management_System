@@ -24,7 +24,7 @@ app.use(globalLimiter);
 
 // CORS Configuration
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",")
+  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
   : [
       "http://localhost:3000",
       "http://192.168.1.37:3000",
@@ -39,10 +39,15 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.some(o => o.includes('*') && new RegExp(o.replace('*', '.*')).test(origin))) {
+      
+      const isAllowed = allowedOrigins.indexOf(origin) !== -1 || 
+                        allowedOrigins.some(o => o.includes('*') && new RegExp(o.replace('*', '.*')).test(origin));
+      
+      if (isAllowed) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        console.warn(`[CORS Warning] Blocked request from unauthorized origin: "${origin}". Allowed origins configured:`, allowedOrigins);
+        callback(null, false);
       }
     },
     credentials: true,
