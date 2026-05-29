@@ -147,19 +147,30 @@ Heavy, asynchronous tasks are delegated to a simple in-memory worker using `setT
 - **Job Types**: Currently implements simulated tasks like `send-email` and `generate-report`.
 
 ## 📈 Load Testing Results
-Tests conducted using `k6` on 2026-02-27.
+
+Tests conducted using k6 on 2026-05-27.
 
 | Test Type | Metric | Performance | Status |
-|---|---|---|---|
-| **Load Test** | p(95) Duration | 456ms | ✅ PASS |
-| **Soak Test** | Stability | 100% Succeeded (9978 reqs) | ✅ PASS |
-| **Stress Test** | Max Throughput | ~31 reqs/s (6535 reqs) | ✅ PASS |
-| **Spike Test** | Recovery | Handled 500 VUs with recovery | ✅ PASS |
+|------------|------------|------------|------------|
+| **Load Test** | p(95) Duration | 1.54s | ✅ PASS |
+| **Soak Test** | Stability | 100% Success (19,591 requests) | ✅ PASS |
+| **Stress Test** | Throughput | ~37.6 req/s (7,942 requests) | ✅ PASS |
+| **Spike Test** | Recovery Under Sudden Load | 0% Request Failures (3,028 requests) | ✅ PASS |
 
 ### Context & Interpretation
-Stress and Spike tests were performed on a **single-node development environment**.
-- **Local Benchmarking**: Throughput (~31 reqs/s) is primarily limited by the Node.js event loop and local MySQL/Redis resource contention.
-- **Scaling Potential**: In a production environment with horizontal scaling (multiple instances) and a dedicated database cluster, the system is designed to handle significantly higher loads.
+
+These tests were executed against the latest application build using k6.
+
+- **Load Test** verified normal production traffic patterns with zero request failures.
+- **Stress Test** sustained up to 150 virtual users while maintaining stable response times.
+- **Spike Test** simulated sudden traffic surges up to 200 virtual users and recovered successfully without request failures.
+- **Soak Test** validated long-duration stability over 19,591 requests with no observed failures.
+
+### Historical Results
+
+For complete benchmark history, raw k6 outputs, and previous performance runs, refer to:
+
+`backend/tests/k6/performance_results.log`
 
 ## 🚀 Setup Instructions
 
