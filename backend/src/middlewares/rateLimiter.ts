@@ -23,6 +23,11 @@ const authRateLimiter = new RateLimiterMemory({
 });
 
 export const globalLimiter = async (req: Request, res: Response, next: NextFunction) => {
+    // Skip rate limiting entirely if we are running a performance test
+    if (process.env.NODE_ENV === "test") {
+        return next();
+    }
+    
     try {
         const reqUser = req.user as any;
 

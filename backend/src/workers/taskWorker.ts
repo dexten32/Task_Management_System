@@ -1,9 +1,12 @@
 import { logger } from "../utils/logger";
+import { queueJobsTotal, queueJobDurationSeconds } from "../utils/metrics";
 
 // Simulated Delay Helper
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 export const processBackgroundJob = async (jobName: string, jobData: any) => {
+    const endTimer = queueJobDurationSeconds.startTimer({ job_name: jobName });
+    let status = "success";
     try {
         switch (jobName) {
             case "send-email":
@@ -22,9 +25,14 @@ export const processBackgroundJob = async (jobName: string, jobData: any) => {
 
             default:
                 logger.warn(`[Worker] Unknown job type: ${jobName}`);
+                status = "unknown";
         }
     } catch (err: any) {
+        status = "error";
         logger.error(`[Worker Event] Job ${jobName} failed`, err);
+    } finally {
+        endTimer();
+        queueJobsTotal.inc({ job_name: jobName, status });
     }
 };
 

@@ -11,6 +11,8 @@ import logsRoutes from "./routes/logsRoutes";
 import priorityRoutes from "./routes/priorityRoutes";
 import compression from "compression";
 import { globalLimiter } from "./middlewares/rateLimiter";
+import promBundle from "express-prom-bundle";
+import { metricsRegistry } from "./utils/metrics";
 
 const prisma = new PrismaClient();
 const app = express();
@@ -21,6 +23,27 @@ app.use(express.json());
 
 // Apply global rate limiting to all requests
 app.use(globalLimiter);
+
+// Prometheus HTTP metrics middleware
+const metricsMiddleware = promBundle({
+  autoregister: false, // We will manually expose /metrics to include Prisma metrics
+  includeMethod: true, 
+  includePath: true, 
+  promRegistry: metricsRegistry
+});
+app.use(metricsMiddleware);
+
+// Custom /metrics endpoint to merge prom-client and Prisma metrics
+app.get("/metrics", async (req, res) => {
+  try {
+    const appMetrics = await metricsRegistry.metrics();
+    const prismaMetrics = await prisma.$metrics.prometheus();
+    res.set("Content-Type", metricsRegistry.contentType);
+    res.end(`${appMetrics}\n${prismaMetrics}`);
+  } catch (ex) {
+    res.status(500).end(ex);
+  }
+});
 
 // CORS Configuration
 const allowedOrigins = process.env.ALLOWED_ORIGINS

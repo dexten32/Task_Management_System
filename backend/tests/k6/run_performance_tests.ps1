@@ -2,7 +2,7 @@ param (
     [string]$TestName = "All"
 )
 
-$resultsFile = "performance_results.log"
+$resultsFile = "performance.log"
 $tests = @(
     [pscustomobject]@{ Name = "Load Test"; Script = "load_test.js" },
     [pscustomobject]@{ Name = "Stress Test"; Script = "stress_test.js" },
@@ -23,9 +23,10 @@ function Run-Test($test) {
     
     # Run k6. Using '--no-color' to avoid ANSI codes in captured output.
     # Redirecting 2>&1 to capture errors, but we will filter them in the summary.
+    $env:K6_NO_COLOR = 'true'
     k6 run --no-color $script 2>&1 | Tee-Object -FilePath $tempFile
     
-    $fullOutput = Get-Content $tempFile -Raw
+    $fullOutput = Get-Content $tempFile -Raw -Encoding UTF8
     
     $summaryPart = ""
     # Extract from metric keywords
@@ -41,17 +42,16 @@ function Run-Test($test) {
     $cleanLines = @()
     foreach ($line in $summaryLines) {
         $l = $line.Trim()
-        # Skip noise and status lines
-        if ($l -match "^running \(.*\)" -or $l -match "^default\s+\[.*\]" -or $l -match "k6 : time=" -or $l -match "At .*:line") {
+        # Skip noise and status lines (keeping default [...])
+        if ($l -match "^running \(.*\)" -or $l -match "k6 : time=" -or $l -match "At .*:line") {
             continue
         }
         # Skip PowerShell error track noise
-        if ($l -match "^\+ CategoryInfo" -or $l -match "^\+ FullyQualifiedErrorId" -or $l -match "^\+ ~~~") {
+        if ($l -match "^\+ CategoryInfo" -or $l -match "^\+ FullyQualifiedErrorId" -or $l -match "^\+ ~~~" -or $l -match "^\+     k6 run") {
             continue
         }
-        # Strip common k6 decorative characters that might survive --no-color
-        $safeLine = $line -replace "[^\x20-\x7E]", "" 
-        $cleanLines += $safeLine.TrimEnd()
+        
+        $cleanLines += $line.TrimEnd()
     }
     
     $finalSummary = ($cleanLines -join "`n").Trim()

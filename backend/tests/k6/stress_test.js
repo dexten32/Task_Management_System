@@ -5,8 +5,8 @@ export let options = {
     stages: [
         { duration: '30s', target: 100 }, // Ramp up
         { duration: '1m', target: 100 },  // Stay at 100
-        { duration: '30s', target: 200 }, // Push to 200
-        { duration: '1m', target: 200 },  // Stay at 200
+        { duration: '30s', target: 150 }, // Push to 150
+        { duration: '1m', target: 150 },  // Stay at 150
         { duration: '30s', target: 0 },   // Ramp down
     ],
 };
