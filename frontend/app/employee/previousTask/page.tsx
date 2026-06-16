@@ -234,109 +234,190 @@ export default function PreviousTasksSection() {
 
       {/* Table Container */}
       {!loading && !error && (
-        <div className="rounded-xl shadow-lg bg-card/60 backdrop-blur-md border border-border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-muted-foreground font-semibold text-xs w-[80px]">ID</TableHead>
-                <TableHead className="text-muted-foreground font-semibold text-xs min-w-[200px]">Task Name</TableHead>
-                <TableHead className="text-muted-foreground font-semibold text-xs">Assignees</TableHead>
-                <TableHead className="text-muted-foreground font-semibold text-xs">Department</TableHead>
-                <TableHead className="text-muted-foreground font-semibold text-xs">Deadline</TableHead>
-                <TableHead className="text-muted-foreground font-semibold text-xs text-right">Status</TableHead>
-                <TableHead className="text-muted-foreground font-semibold text-xs text-right">Priority</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedDates.length > 0 ? (
-                sortedDates.map((date) => (
-                  <React.Fragment key={date}>
-                    {/* Date Section Header Row */}
-                    <TableRow className="bg-muted/10 hover:bg-muted/10 border-border/50">
-                      <TableCell colSpan={7} className="font-semibold text-zinc-400 py-3 text-xs uppercase tracking-wider">
-                        {date}
-                      </TableCell>
-                    </TableRow>
-                    {groupedTasks[date].map((task) => (
-                      <TableRow 
-                        key={task.id} 
-                        className="cursor-pointer border-b border-border/50 hover:bg-muted/30 group transition-colors"
-                        onClick={() => setSelectedTaskId(task.id)}
-                      >
-                        <TableCell className="py-4">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/60 border border-border/40 px-2 py-1 rounded">
-                            TSK-0{task.readableId}
-                          </span>
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <div className="font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
-                            {task.title}
-                          </div>
-                          <div className="text-xs text-muted-foreground line-clamp-1 mt-1 font-medium">
-                            {task.description}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <div className="flex items-center -space-x-2">
-                            {(task.assignees?.length ? task.assignees : (task.assignedTo ? [task.assignedTo] : [])).slice(0, 3).map((a, i) => (
-                              <Avatar key={i} className="h-7 w-7 border-2 border-background">
-                                <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                                  {a?.name?.substring(0, 2).toUpperCase() || 'NA'}
-                                </AvatarFallback>
-                              </Avatar>
-                            ))}
-                            {(task.assignees?.length ? task.assignees.length > 3 : false) && (
-                              <div className="h-7 w-7 rounded-full bg-muted border-2 border-background flex items-center justify-center z-10">
-                                <span className="text-[10px] font-bold text-muted-foreground">+{task.assignees!.length - 3}</span>
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-                            <Folder className="w-4 h-4 text-indigo-500" />
-                            <span>{task.assignees?.[0]?.department?.name || "N/A"}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                            <Clock className="w-3.5 h-3.5 text-indigo-500" />
-                            <span>{format(new Date(task.deadline), "dd MMM yyyy, hh:mm a")}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4 text-right">
-                          <Badge className={`border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2.5 py-1 ${
-                            task.status === "COMPLETED" 
-                              ? "bg-emerald-500/10 text-emerald-500" 
-                              : "bg-amber-500/10 text-amber-500"
-                          }`}>
-                            {task.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-4 text-right">
-                          {task.priority && (
-                            <Badge 
-                              style={{ backgroundColor: task.priority.color, color: "#ffffff" }}
-                              className="border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5"
-                            >
-                              {task.priority.name}
-                            </Badge>
-                          )}
+        <>
+          <div className="hidden md:block rounded-xl shadow-lg bg-card/60 backdrop-blur-md border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/50 hover:bg-transparent">
+                  <TableHead className="text-muted-foreground font-semibold text-xs w-[80px]">ID</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-xs min-w-[200px]">Task Name</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-xs">Assignees</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-xs">Department</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-xs">Deadline</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-xs text-right">Status</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-xs text-right">Priority</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedDates.length > 0 ? (
+                  sortedDates.map((date) => (
+                    <React.Fragment key={date}>
+                      {/* Date Section Header Row */}
+                      <TableRow className="bg-muted/10 hover:bg-muted/10 border-border/50">
+                        <TableCell colSpan={7} className="font-semibold text-zinc-400 py-3 text-xs uppercase tracking-wider">
+                          {date}
                         </TableCell>
                       </TableRow>
+                      {groupedTasks[date].map((task) => (
+                        <TableRow 
+                          key={task.id} 
+                          className="cursor-pointer border-b border-border/50 hover:bg-muted/30 group transition-colors"
+                          onClick={() => setSelectedTaskId(task.id)}
+                        >
+                          <TableCell className="py-4">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/60 border border-border/40 px-2 py-1 rounded">
+                              TSK-0{task.readableId}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
+                              {task.title}
+                            </div>
+                            <div className="text-xs text-muted-foreground line-clamp-1 mt-1 font-medium">
+                              {task.description}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex items-center -space-x-2">
+                              {(task.assignees?.length ? task.assignees : (task.assignedTo ? [task.assignedTo] : [])).slice(0, 3).map((a, i) => (
+                                <Avatar key={i} className="h-7 w-7 border-2 border-background">
+                                  <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                                    {a?.name?.substring(0, 2).toUpperCase() || 'NA'}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                              {(task.assignees?.length ? task.assignees.length > 3 : false) && (
+                                <div className="h-7 w-7 rounded-full bg-muted border-2 border-background flex items-center justify-center z-10">
+                                  <span className="text-[10px] font-bold text-muted-foreground">+{task.assignees!.length - 3}</span>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                              <Folder className="w-4 h-4 text-indigo-500" />
+                              <span>{task.assignees?.[0]?.department?.name || "N/A"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                              <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                              <span>{format(new Date(task.deadline), "dd MMM yyyy, hh:mm a")}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4 text-right">
+                            <Badge className={`border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2.5 py-1 ${
+                              task.status === "COMPLETED" 
+                                ? "bg-emerald-500/10 text-emerald-500" 
+                                : "bg-amber-500/10 text-amber-500"
+                            }`}>
+                              {task.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-4 text-right">
+                            {task.priority && (
+                              <Badge 
+                                style={{ backgroundColor: task.priority.color, color: "#ffffff" }}
+                                className="border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5"
+                              >
+                                {task.priority.name}
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground font-medium">
+                      No task history records found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden flex flex-col gap-6">
+            {sortedDates.length > 0 ? (
+              sortedDates.map((date) => (
+                <div key={date} className="flex flex-col border border-border/80 rounded-xl overflow-hidden bg-card/60 backdrop-blur-md shadow-sm">
+                  <div className="bg-muted/30 px-4 py-2 border-b border-border/50">
+                    <h3 className="font-semibold text-zinc-500 text-[10px] uppercase tracking-wider">{date}</h3>
+                  </div>
+                  <div className="flex flex-col divide-y divide-border/50">
+                    {groupedTasks[date].map((task) => (
+                      <div 
+                        key={task.id} 
+                        className="flex flex-col p-4 hover:bg-muted/10 transition-colors cursor-pointer"
+                        onClick={() => setSelectedTaskId(task.id)}
+                      >
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted border border-border/40 px-2 py-0.5 rounded">
+                                TSK-0{task.readableId}
+                              </span>
+                              {task.priority && (
+                                <Badge 
+                                  style={{ backgroundColor: task.priority.color, color: "#ffffff" }}
+                                  className="border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5"
+                                >
+                                  {task.priority.name}
+                                </Badge>
+                              )}
+                            </div>
+                            <h4 className="font-semibold text-foreground leading-tight text-sm">{task.title}</h4>
+                          </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Badge className={`border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 whitespace-nowrap ${
+                              task.status === "COMPLETED" 
+                                ? "bg-emerald-500/10 text-emerald-500" 
+                                : "bg-amber-500/10 text-amber-500"
+                            }`}>
+                              {task.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="text-xs text-muted-foreground line-clamp-1 mb-3 font-medium">{task.description}</div>
+                        
+                        <div className="flex items-center justify-between mt-1 pt-3 border-t border-border/50">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center -space-x-2">
+                              {(task.assignees?.length ? task.assignees : (task.assignedTo ? [task.assignedTo] : [])).slice(0, 3).map((a, i) => (
+                                <Avatar key={i} className="h-6 w-6 border-2 border-background">
+                                  <AvatarFallback className="bg-primary/10 text-primary text-[9px] font-bold">
+                                    {a?.name?.substring(0, 2).toUpperCase() || 'NA'}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                            </div>
+                            <span className="text-xs font-medium text-muted-foreground ml-1">
+                              {task.assignees?.[0]?.department?.name || "N/A"}
+                            </span>
+                          </div>
+                          
+                          {task.deadline && (
+                            <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/30 px-2 py-1 rounded-md">
+                              <span>{format(new Date(task.deadline), "MMM d")}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     ))}
-                  </React.Fragment>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground font-medium">
-                    No task history records found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="h-24 flex items-center justify-center text-center text-muted-foreground text-sm font-medium">
+                No task history records found.
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Modal */}

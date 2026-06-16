@@ -334,100 +334,175 @@ export default function ManagerTasksPage() {
         {loadingTasks ? (
           <p className="text-muted-foreground text-lg">Loading tasks...</p>
         ) : filteredTasks.length > 0 ? (
-          <div className="rounded-xl shadow-lg bg-card/60 backdrop-blur-md border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="text-muted-foreground font-medium text-xs w-[80px]">ID</TableHead>
-                  <TableHead className="text-muted-foreground font-medium text-xs min-w-[200px]">Task Name</TableHead>
-                  <TableHead className="text-muted-foreground font-medium text-xs">Assignees</TableHead>
-                  <TableHead className="text-muted-foreground font-medium text-xs">Department</TableHead>
-                  <TableHead className="text-muted-foreground font-medium text-xs">Deadline</TableHead>
-                  <TableHead className="text-muted-foreground font-medium text-xs text-right">Status</TableHead>
-                  <TableHead className="text-muted-foreground font-medium text-xs text-right">Priority</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Object.entries(
-                  [...filteredTasks]
-                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                    .reduce((groups: Record<string, typeof filteredTasks>, task) => {
-                      const date = new Date(task.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-                      if (!groups[date]) groups[date] = [];
-                      groups[date].push(task);
-                      return groups;
-                    }, {})
-                ).map(([date, tasks]) => (
-                  <React.Fragment key={date}>
-                    <TableRow className="bg-muted/10 hover:bg-muted/10 border-border/50">
-                      <TableCell colSpan={7} className="font-semibold text-zinc-400 py-3 text-xs uppercase tracking-wider">
-                        {date}
-                      </TableCell>
-                    </TableRow>
-                    {tasks.map((task) => (
-                      <TableRow 
-                        key={task.id} 
-                        onClick={() => setSelectedTaskId(task.id)}
-                        className="cursor-pointer border-b border-border/50 hover:bg-muted/30 group"
-                      >
-                        <TableCell>
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/50 px-2 py-1 rounded">
-                            TSK-0{task.readableId}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
-                            {task.title}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center -space-x-2">
-                            {(task.assignees?.length ? task.assignees : (task.assignedTo ? [task.assignedTo] : [])).slice(0, 3).map((a, i) => (
-                              <Avatar key={i} className="h-7 w-7 border-2 border-background">
-                                <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                                  {a?.name?.substring(0, 2).toUpperCase() || 'NA'}
-                                </AvatarFallback>
-                              </Avatar>
-                            ))}
-                            {(task.assignees?.length ? task.assignees.length > 3 : false) && (
-                              <div className="h-7 w-7 rounded-full bg-muted border-2 border-background flex items-center justify-center z-10">
-                                <span className="text-[10px] font-bold text-muted-foreground">+{task.assignees!.length - 3}</span>
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                            <Folder className="w-4 h-4" />
-                            <span>{task.department || "N/A"}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            <span>{new Date(task.deadline).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge className="bg-primary/10 text-primary hover:bg-primary/15 border-none shadow-none font-medium">
-                            {task.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge 
-                            style={{ backgroundColor: task.priority?.color, color: "#ffffff" }}
-                            className="border-none shadow-none font-medium text-[10px]"
-                          >
-                            {task.priority?.name || "None"}
-                          </Badge>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-xl shadow-lg bg-card/60 backdrop-blur-md border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                    <TableHead className="text-muted-foreground font-medium text-xs w-[80px]">ID</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-xs min-w-[200px]">Task Name</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-xs">Assignees</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-xs">Department</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-xs">Deadline</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-xs text-right">Status</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-xs text-right">Priority</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(
+                    [...filteredTasks]
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .reduce((groups: Record<string, typeof filteredTasks>, task) => {
+                        const date = new Date(task.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                        if (!groups[date]) groups[date] = [];
+                        groups[date].push(task);
+                        return groups;
+                      }, {})
+                  ).map(([date, tasks]) => (
+                    <React.Fragment key={date}>
+                      <TableRow className="bg-muted/10 hover:bg-muted/10 border-border/50">
+                        <TableCell colSpan={7} className="font-semibold text-zinc-400 py-3 text-xs uppercase tracking-wider">
+                          {date}
                         </TableCell>
                       </TableRow>
+                      {tasks.map((task) => (
+                        <TableRow 
+                          key={task.id} 
+                          onClick={() => setSelectedTaskId(task.id)}
+                          className="cursor-pointer border-b border-border/50 hover:bg-muted/30 group"
+                        >
+                          <TableCell>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted/50 px-2 py-1 rounded">
+                              TSK-0{task.readableId}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
+                              {task.title}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center -space-x-2">
+                              {(task.assignees?.length ? task.assignees : (task.assignedTo ? [task.assignedTo] : [])).slice(0, 3).map((a, i) => (
+                                <Avatar key={i} className="h-7 w-7 border-2 border-background">
+                                  <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                                    {a?.name?.substring(0, 2).toUpperCase() || 'NA'}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                              {(task.assignees?.length ? task.assignees.length > 3 : false) && (
+                                <div className="h-7 w-7 rounded-full bg-muted border-2 border-background flex items-center justify-center z-10">
+                                  <span className="text-[10px] font-bold text-muted-foreground">+{task.assignees!.length - 3}</span>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                              <Folder className="w-4 h-4" />
+                              <span>{task.department || "N/A"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Clock className="w-3 h-3" />
+                              <span>{new Date(task.deadline).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Badge className="bg-primary/10 text-primary hover:bg-primary/15 border-none shadow-none font-medium text-[10px] uppercase tracking-wider">
+                              {task.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Badge 
+                              style={{ backgroundColor: task.priority?.color, color: "#ffffff" }}
+                              className="border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5"
+                            >
+                              {task.priority?.name || "None"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-6">
+              {Object.entries(
+                [...filteredTasks]
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .reduce((groups: Record<string, typeof filteredTasks>, task) => {
+                    const date = new Date(task.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                    if (!groups[date]) groups[date] = [];
+                    groups[date].push(task);
+                    return groups;
+                  }, {})
+              ).map(([date, tasks]) => (
+                <div key={date} className="space-y-3">
+                  <h3 className="font-semibold text-zinc-400 text-xs uppercase tracking-wider pl-1">{date}</h3>
+                  <div className="space-y-3">
+                    {tasks.map((task) => (
+                      <div 
+                        key={task.id} 
+                        className="p-4 flex flex-col gap-3 cursor-pointer hover:border-primary/50 transition-colors bg-card/60 backdrop-blur-md shadow-sm border border-border/80 rounded-xl"
+                        onClick={() => setSelectedTaskId(task.id)}
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted border border-border/40 px-2 py-0.5 rounded">
+                                TSK-0{task.readableId}
+                              </span>
+                              {task.priority && (
+                                <Badge 
+                                  style={{ backgroundColor: task.priority.color, color: "#ffffff" }}
+                                  className="border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5"
+                                >
+                                  {task.priority.name}
+                                </Badge>
+                              )}
+                            </div>
+                            <h4 className="font-bold text-foreground leading-tight text-sm">{task.title}</h4>
+                          </div>
+                          <Badge className="bg-primary/10 text-primary border-none shadow-none font-bold text-[9px] uppercase tracking-wider shrink-0 mt-0.5">
+                            {task.status}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between mt-1 pt-3 border-t border-border/50">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center -space-x-2">
+                              {(task.assignees?.length ? task.assignees : (task.assignedTo ? [task.assignedTo] : [])).slice(0, 3).map((a, i) => (
+                                <Avatar key={i} className="h-6 w-6 border-2 border-background">
+                                  <AvatarFallback className="bg-primary/10 text-primary text-[9px] font-bold">
+                                    {a?.name?.substring(0, 2).toUpperCase() || 'NA'}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                              <Folder className="w-3.5 h-3.5 text-indigo-500" />
+                              <span className="truncate max-w-[80px]">{task.department || "N/A"}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground bg-muted/30 px-2 py-1 rounded-md">
+                            <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                            <span>{new Date(task.deadline).toLocaleString([], { month: 'short', day: 'numeric' })}</span>
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                  </React.Fragment>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
           <p className="text-muted-foreground text-lg text-center py-10">
             No tasks found.

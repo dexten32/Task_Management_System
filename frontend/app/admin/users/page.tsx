@@ -347,116 +347,240 @@ export default function UsersTab() {
             </Badge>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/50">
-                  <TableHead className="text-muted-foreground font-medium text-xs">User Name</TableHead>
-                  <TableHead className="text-muted-foreground font-medium text-xs">Department</TableHead>
-                  <TableHead className="text-muted-foreground font-medium text-xs">Role</TableHead>
-                  <TableHead className="text-muted-foreground font-medium text-xs text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-              {employeesList.map((user) => (
-                <TableRow key={user.id} className="border-b border-border/50 hover:bg-muted/30">
-                  {editingUserId === user.id ? (
-                    <TableCell colSpan={4}>
-                      <div className="flex flex-col gap-3 p-2">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <SelectField
-                            value={editedUser.departmentId || ""}
-                            onValueChange={(val) =>
-                              setEditedUser({
-                                ...editedUser,
-                                departmentId: val,
-                              })
-                            }
-                          >
-                            <SelectTrigger className="w-full bg-muted/50 border-border text-foreground">
-                              <SelectValue placeholder="Department" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-border">
-                              <SelectItem value="none">No Department</SelectItem>
-                              {departments.map((dept) => (
-                                <SelectItem key={dept.id} value={dept.id}>
-                                  {dept.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </SelectField>
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50">
+                    <TableHead className="text-muted-foreground font-medium text-xs">User Name</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-xs">Department</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-xs">Role</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-xs text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                {employeesList.map((user) => (
+                  <TableRow key={user.id} className="border-b border-border/50 hover:bg-muted/30">
+                    {editingUserId === user.id ? (
+                      <TableCell colSpan={4}>
+                        <div className="flex flex-col gap-3 p-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <SelectField
+                              value={editedUser.departmentId || ""}
+                              onValueChange={(val) =>
+                                setEditedUser({
+                                  ...editedUser,
+                                  departmentId: val,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="w-full bg-muted/50 border-border text-foreground">
+                                <SelectValue placeholder="Department" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-card border-border">
+                                <SelectItem value="none">No Department</SelectItem>
+                                {departments.map((dept) => (
+                                  <SelectItem key={dept.id} value={dept.id}>
+                                    {dept.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </SelectField>
 
-                          <SelectField
-                            value={editedUser.role || ""}
-                            onValueChange={(val) =>
-                              setEditedUser({ ...editedUser, role: val })
-                            }
-                          >
-                            <SelectTrigger className="w-full bg-muted/50 border-border text-foreground">
-                              <SelectValue placeholder="Role" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-border">
-                              {hardcodedRoles.map((role) => (
-                                <SelectItem key={role.id} value={role.name}>
-                                  {role.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </SelectField>
+                            <SelectField
+                              value={editedUser.role || ""}
+                              onValueChange={(val) =>
+                                setEditedUser({ ...editedUser, role: val })
+                              }
+                            >
+                              <SelectTrigger className="w-full bg-muted/50 border-border text-foreground">
+                                <SelectValue placeholder="Role" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-card border-border">
+                                {hardcodedRoles.map((role) => (
+                                  <SelectItem key={role.id} value={role.name}>
+                                    {role.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </SelectField>
+                          </div>
+                          <div className="flex justify-end gap-2 mt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingUserId(null)}
+                              className="bg-card text-muted-foreground border-border hover:bg-accent hover:text-foreground"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete(user.id)}
+                              className="bg-destructive/10 text-destructive hover:bg-destructive/10 hover:text-destructive border-none px-3"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleSave(user.id)}
+                              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                            >
+                              Save Changes
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex justify-end gap-2 mt-2">
+                      </TableCell>
+                    ) : (
+                      <>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                                {user.name.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-foreground leading-tight">
+                              {user.name}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-muted-foreground text-sm">
+                            {user.department && typeof user.department === "object"
+                              ? user.department.name
+                              : user.department || "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="font-normal text-muted-foreground">
+                            {user.role || "Employee"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
                           <Button
+                            variant="ghost"
                             size="sm"
-                            variant="outline"
-                            onClick={() => setEditingUserId(null)}
-                            className="bg-card text-muted-foreground border-border hover:bg-accent hover:text-foreground"
+                            onClick={() => {
+                              setEditingUserId(user.id);
+                              setEditedUser({
+                                departmentId: user.departmentId || "",
+                                role: user.role || "",
+                              });
+                            }}
+                            className="text-muted-foreground hover:text-foreground h-8"
                           >
-                            Cancel
+                            Edit
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(user.id)}
-                            className="bg-destructive/10 text-destructive hover:bg-destructive/10 hover:text-destructive border-none px-3"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleSave(user.id)}
-                            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                          >
-                            Save Changes
-                          </Button>
-                        </div>
-                      </div>
+                        </TableCell>
+                      </>
+                    )}
+                  </TableRow>
+                ))}
+                {employeesList.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground text-sm">
+                      No approved employees found.
                     </TableCell>
+                  </TableRow>
+                )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile View */}
+            <div className="md:hidden flex flex-col divide-y divide-border/50">
+              {employeesList.map((user) => (
+                <div key={user.id} className="flex flex-col p-4 hover:bg-muted/10 transition-colors">
+                  {editingUserId === user.id ? (
+                    <div className="flex flex-col gap-3">
+                      <div className="grid grid-cols-1 gap-3">
+                        <SelectField
+                          value={editedUser.departmentId || ""}
+                          onValueChange={(val) =>
+                            setEditedUser({
+                              ...editedUser,
+                              departmentId: val,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="w-full bg-muted/50 border-border text-foreground">
+                            <SelectValue placeholder="Department" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="none">No Department</SelectItem>
+                            {departments.map((dept) => (
+                              <SelectItem key={dept.id} value={dept.id}>
+                                {dept.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </SelectField>
+
+                        <SelectField
+                          value={editedUser.role || ""}
+                          onValueChange={(val) =>
+                            setEditedUser({ ...editedUser, role: val })
+                          }
+                        >
+                          <SelectTrigger className="w-full bg-muted/50 border-border text-foreground">
+                            <SelectValue placeholder="Role" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            {hardcodedRoles.map((role) => (
+                              <SelectItem key={role.id} value={role.name}>
+                                {role.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </SelectField>
+                      </div>
+                      <div className="flex justify-end gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingUserId(null)}
+                          className="bg-card text-muted-foreground border-border"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(user.id)}
+                          className="bg-destructive/10 text-destructive border-none px-3"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleSave(user.id)}
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
-                    <>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                              {user.name.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium text-foreground leading-tight">
-                            {user.name}
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                            {user.name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-foreground text-sm">{user.name}</span>
+                          <span className="text-muted-foreground text-xs mt-0.5">
+                            {user.department && typeof user.department === "object" ? user.department.name : user.department || "—"}
                           </span>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-muted-foreground text-sm">
-                          {user.department && typeof user.department === "object"
-                            ? user.department.name
-                            : user.department || "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="font-normal text-muted-foreground">
+                      </div>
+                      
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge variant="secondary" className="font-normal text-muted-foreground text-[10px]">
                           {user.role || "Employee"}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -467,24 +591,21 @@ export default function UsersTab() {
                               role: user.role || "",
                             });
                           }}
-                          className="text-muted-foreground hover:text-foreground h-8"
+                          className="h-6 px-2 text-xs text-indigo-500 hover:text-indigo-600 hover:bg-indigo-500/10"
                         >
                           Edit
                         </Button>
-                      </TableCell>
-                    </>
+                      </div>
+                    </div>
                   )}
-                </TableRow>
+                </div>
               ))}
               {employeesList.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground text-sm">
-                    No approved employees found.
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No approved employees found.
+                </div>
               )}
-              </TableBody>
-            </Table>
+            </div>
           </CardContent>
         </Card>
 

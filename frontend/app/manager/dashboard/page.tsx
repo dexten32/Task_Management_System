@@ -515,7 +515,7 @@ const DashboardPage = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Main Content Area */}
-        <div className="xl:col-span-3 space-y-6">
+        <div className="xl:col-span-3 space-y-6 order-2 xl:order-1">
           <Card className="shadow-sm dark:shadow-2xl dark:shadow-black/40 bg-card backdrop-blur-md">
             <CardHeader className="p-4 md:p-6 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
               <CardTitle className="text-lg">Recent Tasks</CardTitle>
@@ -551,60 +551,120 @@ const DashboardPage = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[300px] text-xs font-medium text-muted-foreground">Task</TableHead>
-                    <TableHead className="text-xs font-medium text-muted-foreground">Assignee</TableHead>
-                    <TableHead className="text-xs font-medium text-muted-foreground">Deadline</TableHead>
-                    <TableHead className="text-right text-xs font-medium text-muted-foreground">Priority</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRecentTasks.length > 0 ? (
-                    filteredRecentTasks.map((task) => (
-                      <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedTaskId(task.id)}>
-                        <TableCell>
-                          <div className="font-medium text-foreground">TSK-0{task.readableId} • {task.title}</div>
-                          <div className="text-xs text-muted-foreground line-clamp-1 mt-1">{task.description}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-[10px] bg-secondary text-secondary-foreground">
-                                {task.assignees?.[0]?.name?.substring(0, 2).toUpperCase() || "?"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm text-muted-foreground">
-                              {task.assignees?.[0]?.name || "Unassigned"}
-                              {task.assignees && task.assignees.length > 1 && ` +${task.assignees.length - 1}`}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {task.deadline ? format(new Date(task.deadline), "MMM d, yyyy") : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {task.priority && (
-                            <Badge 
-                              style={{ backgroundColor: task.priority.color, color: "#ffffff" }}
-                              className="border-none shadow-none font-medium text-[10px]"
-                            >
-                              {task.priority.name}
-                            </Badge>
-                          )}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[300px] text-xs font-medium text-muted-foreground">Task</TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground">Assignee</TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground">Deadline</TableHead>
+                      <TableHead className="text-right text-xs font-medium text-muted-foreground">Priority</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRecentTasks.length > 0 ? (
+                      filteredRecentTasks.map((task) => (
+                        <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedTaskId(task.id)}>
+                          <TableCell>
+                            <div className="font-medium text-foreground">TSK-0{task.readableId} • {task.title}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-1 mt-1">{task.description}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-[10px] bg-secondary text-secondary-foreground">
+                                  {task.assignees?.[0]?.name?.substring(0, 2).toUpperCase() || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm text-muted-foreground">
+                                {task.assignees?.[0]?.name || "Unassigned"}
+                                {task.assignees && task.assignees.length > 1 && ` +${task.assignees.length - 1}`}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {task.deadline ? format(new Date(task.deadline), "MMM d, yyyy") : "-"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {task.priority && (
+                              <Badge 
+                                style={{ backgroundColor: task.priority.color, color: "#ffffff" }}
+                                className="border-none shadow-none font-medium text-[10px]"
+                              >
+                                {task.priority.name}
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                          No tasks found.
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                        No tasks found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden flex flex-col divide-y divide-border/50">
+                {filteredRecentTasks.length > 0 ? (
+                  filteredRecentTasks.map((task) => (
+                    <div 
+                      key={task.id} 
+                      className="flex flex-col p-4 hover:bg-muted/10 transition-colors cursor-pointer"
+                      onClick={() => setSelectedTaskId(task.id)}
+                    >
+                      <div className="flex justify-between items-start gap-2 mb-2">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted border border-border/40 px-2 py-0.5 rounded">
+                              TSK-0{task.readableId}
+                            </span>
+                            {task.priority && (
+                              <Badge 
+                                style={{ backgroundColor: task.priority.color, color: "#ffffff" }}
+                                className="border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5"
+                              >
+                                {task.priority.name}
+                              </Badge>
+                            )}
+                          </div>
+                          <h4 className="font-semibold text-foreground leading-tight text-sm">{task.title}</h4>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-muted-foreground line-clamp-1 mb-3">{task.description}</div>
+                      
+                      <div className="flex items-center justify-between mt-1 pt-3 border-t border-border/50">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-[9px] bg-secondary text-secondary-foreground font-semibold">
+                              {task.assignees?.[0]?.name?.substring(0, 2).toUpperCase() || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {task.assignees?.[0]?.name || "Unassigned"}
+                            {task.assignees && task.assignees.length > 1 && ` +${task.assignees.length - 1}`}
+                          </span>
+                        </div>
+                        
+                        {task.deadline && (
+                          <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/30 px-2 py-1 rounded-md">
+                            <span>{format(new Date(task.deadline), "MMM d")}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="h-24 flex items-center justify-center text-center text-muted-foreground text-sm">
+                    No tasks found.
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -616,59 +676,106 @@ const DashboardPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[300px] text-xs font-medium text-muted-foreground">Task</TableHead>
-                    <TableHead className="text-xs font-medium text-muted-foreground">Assignee</TableHead>
-                    <TableHead className="text-xs font-medium text-muted-foreground">Overdue Since</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDelayedTasks.length > 0 ? (
-                    filteredDelayedTasks.map((task) => (
-                      <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedTaskId(task.id)}>
-                        <TableCell>
-                          <div className="font-medium text-foreground">TSK-0{task.readableId} • {task.title}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-[10px] bg-secondary text-secondary-foreground">
-                                {task.assignees?.[0]?.name?.substring(0, 2).toUpperCase() || "?"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm text-muted-foreground">
-                              {task.assignees?.[0]?.name || "Unassigned"}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {task.deadline ? (
-                            <span className="bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-xs inline-block">
-                              {format(new Date(task.deadline), "MMM d, yyyy")}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[300px] text-xs font-medium text-muted-foreground">Task</TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground">Assignee</TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground">Overdue Since</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDelayedTasks.length > 0 ? (
+                      filteredDelayedTasks.map((task) => (
+                        <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedTaskId(task.id)}>
+                          <TableCell>
+                            <div className="font-medium text-foreground">TSK-0{task.readableId} • {task.title}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-[10px] bg-secondary text-secondary-foreground">
+                                  {task.assignees?.[0]?.name?.substring(0, 2).toUpperCase() || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm text-muted-foreground">
+                                {task.assignees?.[0]?.name || "Unassigned"}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {task.deadline ? (
+                              <span className="bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-xs inline-block">
+                                {format(new Date(task.deadline), "MMM d, yyyy")}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                          No delayed tasks. Great job!
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-                        No delayed tasks. Great job!
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden flex flex-col divide-y divide-border/50">
+                {filteredDelayedTasks.length > 0 ? (
+                  filteredDelayedTasks.map((task) => (
+                    <div 
+                      key={task.id} 
+                      className="flex flex-col p-4 hover:bg-muted/10 transition-colors cursor-pointer"
+                      onClick={() => setSelectedTaskId(task.id)}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted border border-border/40 px-2 py-0.5 rounded">
+                          TSK-0{task.readableId}
+                        </span>
+                      </div>
+                      <h4 className="font-semibold text-foreground leading-tight text-sm mb-3">{task.title}</h4>
+                      
+                      <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-[9px] bg-secondary text-secondary-foreground font-semibold">
+                              {task.assignees?.[0]?.name?.substring(0, 2).toUpperCase() || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {task.assignees?.[0]?.name || "Unassigned"}
+                          </span>
+                        </div>
+                        
+                        {task.deadline ? (
+                          <div className="flex items-center gap-1 text-xs font-semibold bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/20 px-2 py-1 rounded-md">
+                            <span>{format(new Date(task.deadline), "MMM d")}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="h-24 flex items-center justify-center text-center text-muted-foreground text-sm">
+                    No delayed tasks. Great job!
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Analytics Column */}
-        <div className="space-y-6">
+        <div className="space-y-6 order-1 xl:order-2">
           <Card className="shadow-sm dark:shadow-2xl dark:shadow-black/40 bg-card backdrop-blur-md">
             <CardHeader className="border-b pb-4">
               <CardTitle className="text-lg">Tasks Analytics</CardTitle>

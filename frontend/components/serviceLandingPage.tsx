@@ -203,19 +203,44 @@ export default function ServiceCompanyLanding() {
       </div>
 
       {/* Right Column: Form Area */}
-      <div className="w-full lg:w-[55%] flex flex-col items-center justify-center p-6 sm:p-12 relative bg-background/50 dark:bg-background">
+      <div className="w-full lg:w-[55%] flex flex-col items-center justify-center p-6 sm:p-12 relative bg-background/50 dark:bg-background pt-24 lg:pt-12">
         {/* Subtle right side background pattern */}
         <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:16px_16px] opacity-30 pointer-events-none" />
 
-        {/* Mobile Logo */}
-        <div className="absolute top-8 left-8 flex lg:hidden items-center gap-2">
-          <div className="bg-primary p-1.5 rounded-lg">
-            <Hexagon className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-xl tracking-tight">TaskSync</span>
+        {/* Mobile Premium Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none lg:hidden z-0">
+          <motion.div 
+            animate={{ 
+              rotate: [0, 10, -10, 0],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+            className="absolute top-[-20%] left-[-20%] w-[140%] h-[70%] bg-indigo-500/10 blur-[120px] rounded-full dark:bg-indigo-500/15" 
+          />
+          <motion.div 
+            animate={{ 
+              rotate: [0, -10, 10, 0],
+              scale: [1, 1.2, 1],
+            }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute bottom-[-10%] right-[-20%] w-[120%] h-[60%] bg-purple-500/10 blur-[120px] rounded-full dark:bg-purple-500/15" 
+          />
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_100%_100%_at_50%_50%,#000_10%,transparent_100%)]" />
         </div>
 
-        <div className="absolute top-6 right-6 z-50">
+        {/* Mobile Header */}
+        <div className="absolute top-6 left-6 right-6 flex lg:hidden items-center justify-between z-50">
+          <div className="flex items-center gap-2 bg-background/40 backdrop-blur-md p-1.5 pr-4 rounded-full border border-border/40 shadow-sm">
+            <div className="bg-primary p-1.5 rounded-full shadow-sm shadow-primary/20">
+              <Hexagon className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="font-bold text-lg tracking-tight">TaskSync</span>
+          </div>
+          <ModeToggle />
+        </div>
+
+        <div className="absolute top-6 right-6 z-50 hidden lg:block">
           <ModeToggle />
         </div>
 
@@ -225,7 +250,7 @@ export default function ServiceCompanyLanding() {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="w-full max-w-[540px] relative z-10"
         >
-          {/* Main Form Content - Now Without Card Container */}
+          {/* Main Form Content - Without Card Container */}
           <div className="text-center mb-12">
             <motion.div 
               key={isLogin ? 'login' : 'signup'}
@@ -234,7 +259,7 @@ export default function ServiceCompanyLanding() {
               transition={{ duration: 0.3 }}
             >
               <h2 className="text-4xl font-extrabold tracking-tight text-foreground mb-4">
-                {isLogin ? "Welcome back" : "Create your account"}
+                {isLogin ? "Welcome back" : "Create account"}
               </h2>
               <p className="text-lg text-muted-foreground font-medium">
                 {isLogin
@@ -245,11 +270,11 @@ export default function ServiceCompanyLanding() {
           </div>
 
           <div className="grid grid-cols-2 gap-5 mb-10">
-            <Button variant="outline" type="button" className="w-full bg-background hover:bg-muted h-14 text-base transition-all border-border shadow-sm group" onClick={() => googleLogin()}>
+            <Button variant="outline" type="button" className="w-full bg-background/80 backdrop-blur-sm hover:bg-muted h-14 text-base transition-all border-border shadow-sm group" onClick={() => googleLogin()}>
               <Github className="mr-3 h-5 w-5 text-foreground/70 group-hover:text-foreground transition-colors" />
               <span className="font-semibold">GitHub</span>
             </Button>
-            <Button variant="outline" type="button" className="w-full bg-background hover:bg-muted h-14 text-base transition-all border-border shadow-sm group" onClick={() => googleLogin()}>
+            <Button variant="outline" type="button" className="w-full bg-background/80 backdrop-blur-sm hover:bg-muted h-14 text-base transition-all border-border shadow-sm group" onClick={() => googleLogin()}>
               <Chrome className="mr-3 h-5 w-5 text-foreground/70 group-hover:text-foreground transition-colors" />
               <span className="font-semibold">Google</span>
             </Button>
@@ -282,7 +307,7 @@ export default function ServiceCompanyLanding() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="h-14 text-lg bg-background/50 border-border/50 focus-visible:ring-primary/50 focus-visible:border-primary transition-all shadow-sm"
+                    className="h-14 text-lg bg-background/60 backdrop-blur-sm border-border/60 focus-visible:ring-primary/50 focus-visible:border-primary transition-all shadow-sm"
                   />
                 </motion.div>
               )}
@@ -297,7 +322,7 @@ export default function ServiceCompanyLanding() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-14 text-lg bg-background/50 border-border/50 focus-visible:ring-primary/50 focus-visible:border-primary transition-all shadow-sm"
+                className="h-14 text-lg bg-background/60 backdrop-blur-sm border-border/60 focus-visible:ring-primary/50 focus-visible:border-primary transition-all shadow-sm"
               />
             </div>
 
@@ -318,7 +343,7 @@ export default function ServiceCompanyLanding() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="h-14 text-lg pr-12 bg-background/50 border-border/50 focus-visible:ring-primary/50 focus-visible:border-primary transition-all shadow-sm"
+                  className="h-14 text-lg pr-12 bg-background/60 backdrop-blur-sm border-border/60 focus-visible:ring-primary/50 focus-visible:border-primary transition-all shadow-sm"
                 />
                 <button
                   type="button"
@@ -346,7 +371,7 @@ export default function ServiceCompanyLanding() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="h-14 text-lg bg-background/50 border-border/50 focus-visible:ring-primary/50 focus-visible:border-primary transition-all shadow-sm"
+                    className="h-14 text-lg bg-background/60 backdrop-blur-sm border-border/60 focus-visible:ring-primary/50 focus-visible:border-primary transition-all shadow-sm"
                   />
                 </motion.div>
               )}

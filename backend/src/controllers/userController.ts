@@ -69,29 +69,13 @@ const loginFails = new Map<string, { attempts: number, expiry: number }>();
 
 // Login
 export const login = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  const normalizedEmail = email ? email.toLowerCase() : "";
+
   try {
-    const { email, password } = req.body;
-    const normalizedEmail = email ? email.toLowerCase() : "";
-
-    // Apply progressive delay if needed
-    const failData = loginFails.get(normalizedEmail);
-    if (failData) {
-      if (Date.now() > failData.expiry) {
-        loginFails.delete(normalizedEmail);
-      } else {
-        const delayMs = Math.min(failData.attempts * 1000, 15000);
-        if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-
     const user = await loginUser(email, password);
 
-    if (!user) {
-      const attempts = (failData?.attempts || 0) + 1;
-      loginFails.set(normalizedEmail, { attempts, expiry: Date.now() + 900 * 1000 });
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
+    // If successful, reset fail data
     loginFails.delete(normalizedEmail);
 
     const token = jwt.sign(
@@ -110,7 +94,20 @@ export const login = async (req: Request, res: Response) => {
 
     res.status(200).json({ user, token });
   } catch (error: any) {
-    res.status(401).json({ message: error.message || "Login failed" });
+    // If login failed, apply the progressive delay BEFORE responding
+    const failData = loginFails.get(normalizedEmail);
+    const attempts = (failData?.attempts || 0) + 1;
+    
+    // Apply delay based on attempts to tarpit brute force
+    const delayMs = Math.min(attempts * 1000, 15000);
+    if (delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+
+    // Record the new failure
+    loginFails.set(normalizedEmail, { attempts, expiry: Date.now() + 900 * 1000 });
+
+    res.status(401).json({ message: error.message || "Invalid credentials" });
   }
 };
 

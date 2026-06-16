@@ -190,73 +190,131 @@ export default function EmployeeDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
         
         {/* Left 70% column: Recent Tasks Table */}
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-7 order-2 lg:order-1">
           <Card className="border border-border/80 shadow-sm overflow-hidden bg-card/60 backdrop-blur-md rounded-2xl">
             <div className="border-b border-border/50 p-6">
               <h2 className="text-xl font-bold tracking-tight">Recent Tasks</h2>
             </div>
             <CardContent className="p-0">
-              <Table className="border-collapse">
-                <TableHeader>
-                  <TableRow className="border-none hover:bg-transparent">
-                    <TableHead className="w-[45%] text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-6">Task</TableHead>
-                    <TableHead className="w-[20%] text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assigned By</TableHead>
-                    <TableHead className="w-[18%] text-xs font-semibold text-muted-foreground uppercase tracking-wider">Deadline</TableHead>
-                    <TableHead className="w-[9%] text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">Priority</TableHead>
-                    <TableHead className="w-[8%] text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right pr-6">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tasks.length > 0 ? (
-                    tasks.slice(0, 6).map((task) => (
-                      <TableRow 
-                        key={task.id} 
-                        className="cursor-pointer hover:bg-muted/30 border-none transition-colors"
-                        onClick={() => setSelectedTaskId(task.id)}
-                      >
-                        <TableCell className="py-4 border-none pl-6">
-                          <div className="font-semibold text-foreground leading-snug truncate max-w-[280px]">
-                            TSK-0{task.readableId} • {task.title}
-                          </div>
-                          <div className="text-xs text-muted-foreground line-clamp-1 mt-1 font-medium truncate max-w-[280px]">
-                            {task.description}
-                          </div>
+              <div className="hidden md:block">
+                <Table className="border-collapse">
+                  <TableHeader>
+                    <TableRow className="border-none hover:bg-transparent">
+                      <TableHead className="w-[45%] text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-6">Task</TableHead>
+                      <TableHead className="w-[20%] text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assigned By</TableHead>
+                      <TableHead className="w-[18%] text-xs font-semibold text-muted-foreground uppercase tracking-wider">Deadline</TableHead>
+                      <TableHead className="w-[9%] text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">Priority</TableHead>
+                      <TableHead className="w-[8%] text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right pr-6">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tasks.length > 0 ? (
+                      tasks.slice(0, 6).map((task) => (
+                        <TableRow 
+                          key={task.id} 
+                          className="cursor-pointer hover:bg-muted/30 border-none transition-colors"
+                          onClick={() => setSelectedTaskId(task.id)}
+                        >
+                          <TableCell className="py-4 border-none pl-6">
+                            <div className="font-semibold text-foreground leading-snug truncate max-w-[280px]">
+                              TSK-0{task.readableId} • {task.title}
+                            </div>
+                            <div className="text-xs text-muted-foreground line-clamp-1 mt-1 font-medium truncate max-w-[280px]">
+                              {task.description}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4 border-none">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-[10px] bg-indigo-500/10 text-indigo-500 font-bold">
+                                  {task.assignedBy?.name?.substring(0, 2).toUpperCase() || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium text-muted-foreground truncate max-w-[110px]">
+                                {task.assignedBy?.name || "N/A"}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4 border-none text-sm font-medium text-muted-foreground whitespace-nowrap">
+                            {task.deadline ? format(new Date(task.deadline), "MMM d, yyyy") : "-"}
+                          </TableCell>
+                          <TableCell className="py-4 border-none text-right">
+                            {task.priority && (
+                              <Badge 
+                                style={{ backgroundColor: task.priority.color, color: "#ffffff" }}
+                                className="border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5"
+                              >
+                                {task.priority.name}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-4 border-none text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                            {(task.status === "ACTIVE" || task.status === "PENDING") ? (
+                              <button
+                                onClick={() => handleComplete(task.id)}
+                                className="inline-flex items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow-sm hover:shadow transition-all duration-200 hover:scale-105"
+                              >
+                                Done
+                              </button>
+                            ) : (
+                              <Badge className={`border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2.5 py-1 whitespace-nowrap ${
+                                task.status === "COMPLETED" 
+                                  ? "bg-emerald-500/10 text-emerald-500" 
+                                  : "bg-amber-500/10 text-amber-500"
+                              }`}>
+                                {task.status}
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow className="border-none">
+                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground font-medium border-none">
+                          No tasks found in workspace.
                         </TableCell>
-                        <TableCell className="py-4 border-none">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-[10px] bg-indigo-500/10 text-indigo-500 font-bold">
-                                {task.assignedBy?.name?.substring(0, 2).toUpperCase() || "?"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm font-medium text-muted-foreground truncate max-w-[110px]">
-                              {task.assignedBy?.name || "N/A"}
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden flex flex-col divide-y divide-border/50">
+                {tasks.length > 0 ? (
+                  tasks.slice(0, 6).map((task) => (
+                    <div 
+                      key={task.id} 
+                      className="flex flex-col p-4 hover:bg-muted/10 transition-colors cursor-pointer"
+                      onClick={() => setSelectedTaskId(task.id)}
+                    >
+                      <div className="flex justify-between items-start gap-2 mb-2">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted border border-border/40 px-2 py-0.5 rounded">
+                              TSK-0{task.readableId}
                             </span>
+                            {task.priority && (
+                              <Badge 
+                                style={{ backgroundColor: task.priority.color, color: "#ffffff" }}
+                                className="border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5"
+                              >
+                                {task.priority.name}
+                              </Badge>
+                            )}
                           </div>
-                        </TableCell>
-                        <TableCell className="py-4 border-none text-sm font-medium text-muted-foreground whitespace-nowrap">
-                          {task.deadline ? format(new Date(task.deadline), "MMM d, yyyy") : "-"}
-                        </TableCell>
-                        <TableCell className="py-4 border-none text-right">
-                          {task.priority && (
-                            <Badge 
-                              style={{ backgroundColor: task.priority.color, color: "#ffffff" }}
-                              className="border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5"
-                            >
-                              {task.priority.name}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-4 border-none text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                          <h4 className="font-semibold text-foreground leading-tight text-sm">{task.title}</h4>
+                        </div>
+                        <div onClick={(e) => e.stopPropagation()}>
                           {(task.status === "ACTIVE" || task.status === "PENDING") ? (
                             <button
                               onClick={() => handleComplete(task.id)}
-                              className="inline-flex items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow-sm hover:shadow transition-all duration-200 hover:scale-105"
+                              className="inline-flex items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-semibold px-2 py-1 rounded shadow-sm hover:shadow transition-all duration-200"
                             >
                               Done
                             </button>
                           ) : (
-                            <Badge className={`border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2.5 py-1 whitespace-nowrap ${
+                            <Badge className={`border-none shadow-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 whitespace-nowrap ${
                               task.status === "COMPLETED" 
                                 ? "bg-emerald-500/10 text-emerald-500" 
                                 : "bg-amber-500/10 text-amber-500"
@@ -264,24 +322,43 @@ export default function EmployeeDashboard() {
                               {task.status}
                             </Badge>
                           )}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow className="border-none">
-                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground font-medium border-none">
-                        No tasks found in workspace.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-muted-foreground line-clamp-1 mb-3 font-medium">{task.description}</div>
+                      
+                      <div className="flex items-center justify-between mt-1 pt-3 border-t border-border/50">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-[9px] bg-indigo-500/10 text-indigo-500 font-bold">
+                              {task.assignedBy?.name?.substring(0, 2).toUpperCase() || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {task.assignedBy?.name || "N/A"}
+                          </span>
+                        </div>
+                        
+                        {task.deadline && (
+                          <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/30 px-2 py-1 rounded-md">
+                            <span>{format(new Date(task.deadline), "MMM d")}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="h-24 flex items-center justify-center text-center text-muted-foreground text-sm font-medium">
+                    No tasks found in workspace.
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Right 30% column: Tasks Analytics (Admin Donut Chart) */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-6 order-1 lg:order-2">
           <Card className="border border-border shadow-sm bg-card backdrop-blur-md rounded-2xl">
             <div className="p-6 border-b border-border/50">
               <h3 className="text-md font-bold tracking-tight text-foreground">Tasks Analytics</h3>
